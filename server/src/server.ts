@@ -1,5 +1,4 @@
-// File: /server/src/server.ts
-
+import 'dotenv/config';
 import { serve } from '@hono/node-server'
 import app from './index' // Imports your main Hono app from index.ts
 
