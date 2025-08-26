@@ -39,7 +39,7 @@ export const protect = async (c: AuthContext, next: Next) => {
   }
 
   const token = authHeader.substring(7);
-  const projectId = c.env.FIREBASE_PROJECT_ID;
+  const projectId = "maximost-a0401";
 
   if (!projectId) {
     console.error('FIREBASE_PROJECT_ID environment variable not set.');
