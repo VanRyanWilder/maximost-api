@@ -1,3 +1,4 @@
+import { jsonWithCors } from '../utils/response';
 import { Hono } from 'hono';
 import { protect } from '../middleware/auth';
 import { firestoreAPI } from '../lib/firestore-helper';
@@ -22,25 +23,21 @@ habitRoutes.get('/', async (c) => {
     console.log(`[habitRoutes] Attempting to fetch habits for user: ${user.user_id}`);
     const firestoreResponse = await firestoreAPI(c.env, userToken, endpoint, 'GET');
 
-    // Check if the response from Firestore is what we expect.
     if (firestoreResponse && Array.isArray(firestoreResponse.documents)) {
       const habits = firestoreResponse.documents.map(parseFirestoreDoc);
       console.log(`[habitRoutes] Successfully fetched and parsed ${habits.length} habits.`);
-      return c.json(habits);
+      return jsonWithCors(c, habits); // CORRECTED
     } else if (firestoreResponse && Object.keys(firestoreResponse).length === 0) {
-        // This case handles when a user has no habits, Firestore returns an empty object {}
         console.log(`[habitRoutes] No habits found for user: ${user.user_id}. Returning empty array.`);
-        return c.json([]);
+        return jsonWithCors(c, []); // CORRECTED
     }
     else {
-      // This case handles unexpected responses from Firestore.
       console.warn(`[habitRoutes] Received an unexpected response from Firestore for user ${user.user_id}:`, firestoreResponse);
-      return c.json({ error: 'Received an unexpected response from the database.' }, 500);
+      return jsonWithCors(c, { error: 'Received an unexpected response from the database.' }, 500); // CORRECTED
     }
   } catch (error: any) {
     console.error("!!! FAILED TO FETCH HABITS FROM FIRESTORE:", error);
-    // Return a proper JSON error instead of letting it fail silently
-    return c.json({ error: "Failed to fetch habits from database.", details: error.message }, 500);
+    return jsonWithCors(c, { error: "Failed to fetch habits from database.", details: error.message }, 500); // CORRECTED
   }
 });
 
@@ -54,9 +51,9 @@ habitRoutes.post('/', async (c) => {
   try {
     const newHabit = { fields: { ...body } };
     const createdHabit = await firestoreAPI(c.env, userToken, endpoint, 'POST', newHabit);
-    return c.json(parseFirestoreDoc(createdHabit));
+    return jsonWithCors(c, parseFirestoreDoc(createdHabit)); // CORRECTED
   } catch (error: any) {
-    return c.json({ error: 'Failed to create habit' }, 500);
+    return jsonWithCors(c, { error: 'Failed to create habit' }, 500); // CORRECTED
   }
 });
 
@@ -71,9 +68,9 @@ habitRoutes.put('/:id', async (c) => {
   try {
     const updatedHabit = { fields: { ...body } };
     await firestoreAPI(c.env, userToken, endpoint, 'PATCH', updatedHabit);
-    return c.json({ success: true });
+    return jsonWithCors(c, { success: true }); // CORRECTED
   } catch (error: any) {
-    return c.json({ error: 'Failed to update habit' }, 500);
+    return jsonWithCors(c, { error: 'Failed to update habit' }, 500); // CORRECTED
   }
 });
 
@@ -86,9 +83,10 @@ habitRoutes.delete('/:id', async (c) => {
 
   try {
     await firestoreAPI(c.env, userToken, endpoint, 'DELETE');
-    return c.body(null, 204);
+    // For 204 No Content, we still use the helper but pass null as the body
+    return jsonWithCors(c, null, 204); // CORRECTED
   } catch (error: any) {
-    return c.json({ error: 'Failed to delete habit' }, 500);
+    return jsonWithCors(c, { error: 'Failed to delete habit' }, 500); // CORRECTED
   }
 });
 
@@ -103,9 +101,9 @@ habitRoutes.post('/:id/complete', async (c) => {
   try {
     const completionData = { fields: { date: { stringValue: date }, value: { integerValue: value } } };
     const result = await firestoreAPI(c.env, userToken, endpoint, 'POST', completionData);
-    return c.json(result);
+    return jsonWithCors(c, result); // CORRECTED
   } catch (error: any) {
-    return c.json({ error: 'Failed to complete habit' }, 500);
+    return jsonWithCors(c, { error: 'Failed to complete habit' }, 500); // CORRECTED
   }
 });
 

@@ -1,3 +1,4 @@
+import { jsonWithCors } from '../utils/response';
 import { createRemoteJWKSet } from 'jose';
 import { jwtVerify } from 'jose';
 import { Hono } from 'hono';
@@ -35,15 +36,15 @@ const app = new Hono<AppEnv>();
 export const protect = async (c: AuthContext, next: Next) => {
   const authHeader = c.req.header('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return c.json({ success: false, message: 'Unauthorized: Missing or invalid token' }, 401);
+    return jsonWithCors(c, { success: false, message: 'Unauthorized: Missing or invalid token' }, 401); // CORRECTED
   }
 
   const token = authHeader.substring(7);
-  const projectId = "maximost-a0401";
+  const projectId = c.env.FIREBASE_PROJECT_ID; // CORRECTED - Restored from environment variable
 
   if (!projectId) {
     console.error('FIREBASE_PROJECT_ID environment variable not set.');
-    return c.json({ success: false, message: 'Internal Server Error: Firebase project ID not configured.' }, 500);
+    return jsonWithCors(c, { success: false, message: 'Internal Server Error: Firebase project ID not configured.' }, 500); // CORRECTED
   }
 
   const JWKS = createRemoteJWKSet(
@@ -61,6 +62,6 @@ export const protect = async (c: AuthContext, next: Next) => {
 
   } catch (err: any) {
     console.error("!!! AUTHENTICATION MIDDLEWARE FAILED:", err);
-    return c.json({ error: 'Authentication Failed', details: err.message }, 401);
+    return jsonWithCors(c, { error: 'Authentication Failed', details: err.message }, 401); // CORRECTED
   }
 };

@@ -1,3 +1,4 @@
+import { jsonWithCors } from './utils/response';
 import { Hono } from 'hono';
 import { logger } from 'hono/logger';
 import { cors } from 'hono/cors';
@@ -36,12 +37,12 @@ app.get('/', (c) => {
 
 app.onError((err, c) => {
   console.error(`Error in ${c.req.path}: ${err.message}`, err.stack);
-  return c.json({ success: false, message: 'Internal Server Error', error: err.message }, 500);
+  return jsonWithCors(c, { success: false, message: 'Internal Server Error', error: err.message }, 500);
 });
 
 app.notFound((c) => {
   console.log(`Main app 404 Not Found for URL: ${c.req.url} (Path: ${c.req.path})`);
-  return c.json({ success: false, message: `Endpoint Not Found by Main Router: ${c.req.method} ${c.req.path}` }, 404);
-}); 
+  return jsonWithCors(c, { success: false, message: `Endpoint Not Found by Main Router: ${c.req.method} ${c.req.path}` }, 404);
+});
 
 export default app;
