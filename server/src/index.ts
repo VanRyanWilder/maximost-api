@@ -21,7 +21,7 @@ app.use('*', secureHeaders());
 
 app.use('*', cors({
   origin: '*', // TODO: Restrict in production
-  allowHeaders: ['Authorization', 'Content-Type', 'cache-control', 'x-client-info', 'pragma'],
+  allowHeaders: ['Authorization', 'Content-Type', 'cache-control', 'x-client-info', 'pragma', 'expires'],
   allowMethods: ['POST', 'GET', 'OPTIONS', 'DELETE', 'PUT'],
   credentials: true,
   maxAge: 600
