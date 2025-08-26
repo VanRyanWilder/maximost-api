@@ -9,12 +9,6 @@ const habitRoutes = new Hono<{
   Variables: { user: FirebaseUser };
 }>();
 
-// Add this for debugging response headers
-app.use('*', async (c, next) => {
-  await next();
-  console.log(`[DEBUG] Response for ${c.req.path} - Status: ${c.res.status}, Headers: ${JSON.stringify(Object.fromEntries(c.res.headers))}`);
-});
-
 // Apply protect middleware to all habit routes
 habitRoutes.use('/*', protect);
 
