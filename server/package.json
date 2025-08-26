@@ -3,10 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "node build.mjs"
+    "build": "node build.mjs",
+    "start": "npx wrangler dev src/index.ts"
   },
   "dependencies": {
-    "hono": "^4.5.1"
+    "@hono/cors": "^0.2.2",
+    "hono": "^4.5.1",
+    "jose": "^5.4.1"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240725.0",
