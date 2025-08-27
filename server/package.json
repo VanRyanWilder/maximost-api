@@ -7,7 +7,6 @@
     "start": "node dist/server.js"
   },
   "dependencies": {
-    "dotenv": "^17.2.1",
     "hono": "^4.5.1",
     "jose": "^5.4.1"
   },
