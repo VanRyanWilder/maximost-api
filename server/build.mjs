@@ -1,24 +1,17 @@
 import esbuild from 'esbuild';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+console.log('Starting programmatic esbuild build...');
 
-const entryPoint = path.resolve(__dirname, 'src/index.ts');
-const outFile = path.resolve(__dirname, '../dist/_worker.js');
-
-try {
-  await esbuild.build({
-    entryPoints: [entryPoint],
-    bundle: true,
-    outfile: outFile,
-    platform: 'browser',
-    format: 'esm',
-    conditions: ['worker', 'browser'],
-  });
-  console.log('Build finished successfully:', outFile);
-} catch (error) {
-  console.error('Build failed:', error);
+esbuild.build({
+  entryPoints: ['src/server.ts'],
+  bundle: true,
+  platform: 'node',
+  target: 'esnext',
+  outfile: 'dist/server.js',
+  format: 'esm',
+}).then(() => {
+  console.log('⚡ Build finished successfully!');
+}).catch((err) => {
+  console.error('Build failed:', err);
   process.exit(1);
-}
+});
