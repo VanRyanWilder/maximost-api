@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-  "build": "npx esbuild --bundle --platform=node --outfile=dist/server.js src/server.ts",
+  "build": "node build.mjs",
   "start": "node dist/server.js"
 },
   "dependencies": {
