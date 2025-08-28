@@ -1,7 +1,6 @@
-import { serve } from '@hono/node-server';
-import app from './index';
-
-console.log('Server is starting...');
+import 'dotenv/config';
+import { serve } from '@hono/node-server'
+import app from './index'
 
 serve({
   fetch: app.fetch,
@@ -9,4 +8,4 @@ serve({
   hostname: '0.0.0.0'
 }, (info) => {
     console.log(`Server is running at http://${info.address}:${info.port}`)
-});
+})
