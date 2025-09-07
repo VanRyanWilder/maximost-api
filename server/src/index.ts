@@ -6,13 +6,11 @@ import type { AppEnv } from './hono';
 import type { JwtVariables } from 'hono/jwt'
 
 // Define a type for the variables that will be available in the context.
-// This includes our environment variables and the JWT payload variables.
 type Variables = AppEnv['Variables'] & JwtVariables;
 
-// --- Main Application ---
-// This is the root app. It handles cross-cutting concerns like CORS.
 const app = new Hono<{ Variables: Variables }>();
 
+// Apply CORS middleware to all requests
 app.use('*', cors({
   origin: '*',
   allowHeaders: ['Authorization', 'Content-Type', 'cache-control', 'pragma', 'expires'],
@@ -20,26 +18,18 @@ app.use('*', cors({
   credentials: true,
 }));
 
-// --- API Sub-Router ---
-// This app will handle all routes under the /api path.
-const api = new Hono<{ Variables: Variables }>();
-
-// Apply JWT authentication middleware ONLY to this API sub-router.
-api.use('/*', (c, next) => {
+// Apply JWT authentication middleware ONLY to routes matching /api/*
+app.use('/api/*', (c, next) => {
     const jwtMiddleware = jwt({
         secret: c.env.SUPABASE_JWT_SECRET,
     });
     return jwtMiddleware(c, next);
 });
 
-// Register our API routes on the sub-router.
-api.route('/habits', habitRoutes);
+// Register API routes with the /api prefix
+app.route('/api/habits', habitRoutes);
 
-// Mount the API sub-router onto the main application at the /api path.
-app.route('/api', api);
-
-// --- Public Routes ---
-// A simple health check route that is NOT part of the API and is not protected.
+// Register public routes
 app.get('/health', (c) => c.text('OK'));
 
 export default app;
