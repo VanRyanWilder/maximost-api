@@ -1,6 +1,7 @@
 import habitRoutes from './habitRoutes';
 import { Hono } from 'hono';
 import { supabase } from '../lib/supabaseClient'; // Import the actual client to be mocked
+import { jwt } from 'hono/jwt';
 
 // Mock the Supabase client
 jest.mock('../lib/supabaseClient', () => ({
@@ -15,23 +16,24 @@ jest.mock('../lib/supabaseClient', () => ({
   },
 }));
 
-// Mock the auth middleware to provide a user context
-jest.mock('../middleware/auth', () => ({
-  protect: jest.fn(async (c: any, next: any) => {
-    c.set('user', { id: 'test-user-id' });
-    await next();
-  }),
+// Mock the JWT middleware to provide a user context
+jest.mock('hono/jwt', () => ({
+    jwt: jest.fn(() => (c, next) => {
+      c.set('jwtPayload', { sub: 'test-user-id', aud: 'authenticated' });
+      return next();
+    }),
 }));
 
-describe('Habit Routes with Supabase', () => {
+describe('Habit Routes with Supabase and hono/jwt', () => {
   let app: Hono;
 
   beforeEach(() => {
-    // Clear all mocks before each test
     jest.clearAllMocks();
 
-    // Re-initialize the app for each test to ensure isolation
-    app = new Hono().route('/habits', habitRoutes);
+    app = new Hono();
+    // Apply the mocked jwt middleware
+    app.use('/habits/*', jwt({ secret: 'test-secret' }));
+    app.route('/habits', habitRoutes);
   });
 
   // Test for GET /habits
@@ -79,7 +81,7 @@ describe('Habit Routes with Supabase', () => {
     });
 
     expect(supabase.from).toHaveBeenCalledWith('habits');
-    expect(supabase.insert).toHaveBeenCalledWith(expect.objectContaining(newHabitPayload));
+    expect(supabase.insert).toHaveBeenCalledWith(expect.objectContaining({ ...newHabitPayload, user_id: 'test-user-id' }));
     expect(res.status).toBe(201);
     const body = await res.json();
     expect(body).toEqual(createdHabit);
@@ -179,7 +181,7 @@ describe('Habit Routes with Supabase', () => {
             body: JSON.stringify(payload),
         });
 
-        expect(supabase.insert).toHaveBeenCalledWith({ habit_id: 1, user_id: 'test-user-id', ...payload });
+        expect(supabase.insert).toHaveBeenCalledWith(expect.objectContaining({ habit_id: 1, user_id: 'test-user-id', ...payload }));
         expect(res.status).toBe(201);
         const body = await res.json();
         expect(body).toEqual(newCompletion);

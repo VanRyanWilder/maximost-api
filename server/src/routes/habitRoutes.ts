@@ -1,29 +1,23 @@
 import { Hono } from 'hono';
 import { supabase } from '../lib/supabaseClient';
 import { jsonWithCors } from '../utils/response';
+import type { JwtVariables } from 'hono/jwt'
 
-// Define the type for the user variable in the context, aligning with the auth middleware.
-type User = {
-  id: string;
-};
-
+// Define the type for the variables in the context
 const habitRoutes = new Hono<{
-  Variables: {
-    user: User;
-  };
+  Variables: JwtVariables
 }>();
 
-// Note: The 'protect' middleware is applied globally in `src/index.ts`,
-// so we can reliably access `c.get('user')` in all handlers.
 
 // GET / - Fetch all habits for the authenticated user
 habitRoutes.get('/', async (c) => {
-  const user = c.get('user');
+  const payload = c.get('jwtPayload');
+  const userId = payload.sub;
 
   const { data, error } = await supabase
     .from('habits')
     .select('*')
-    .eq('user_id', user.id);
+    .eq('user_id', userId);
 
   if (error) {
     console.error('[habitRoutes GET /]', error);
@@ -35,14 +29,15 @@ habitRoutes.get('/', async (c) => {
 
 // GET /:id - Fetch a single habit by ID
 habitRoutes.get('/:id', async (c) => {
-    const user = c.get('user');
+    const payload = c.get('jwtPayload');
+    const userId = payload.sub;
     const habitId = c.req.param('id');
 
     const { data, error } = await supabase
       .from('habits')
       .select('*')
       .eq('id', habitId)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .single();
 
     if (error) {
@@ -58,8 +53,9 @@ habitRoutes.get('/:id', async (c) => {
 
 // POST / - Create a new habit
 habitRoutes.post('/', async (c) => {
-  const user = c.get('user');
-  const body = await c.req.json();
+    const payload = c.get('jwtPayload');
+    const userId = payload.sub;
+    const body = await c.req.json();
 
   // Basic validation to ensure required fields are present
   if (!body.name || !body.start_date || !body.frequency_type) {
@@ -68,7 +64,7 @@ habitRoutes.post('/', async (c) => {
 
   const newHabit = {
     ...body,
-    user_id: user.id,
+    user_id: userId,
   };
 
   const { data, error } = await supabase
@@ -87,9 +83,10 @@ habitRoutes.post('/', async (c) => {
 
 // PUT /:id - Update an existing habit
 habitRoutes.put('/:id', async (c) => {
-  const user = c.get('user');
-  const habitId = c.req.param('id');
-  const body = await c.req.json();
+    const payload = c.get('jwtPayload');
+    const userId = payload.sub;
+    const habitId = c.req.param('id');
+    const body = await c.req.json();
 
   // Prevent changing the ownership or ID of the habit
   delete body.user_id;
@@ -100,7 +97,7 @@ habitRoutes.put('/:id', async (c) => {
     .from('habits')
     .update(body)
     .eq('id', habitId)
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .select()
     .single();
 
@@ -117,14 +114,15 @@ habitRoutes.put('/:id', async (c) => {
 
 // DELETE /:id - Delete a habit
 habitRoutes.delete('/:id', async (c) => {
-  const user = c.get('user');
-  const habitId = c.req.param('id');
+    const payload = c.get('jwtPayload');
+    const userId = payload.sub;
+    const habitId = c.req.param('id');
 
   const { error, count } = await supabase
     .from('habits')
     .delete({ count: 'exact' })
     .eq('id', habitId)
-    .eq('user_id', user.id);
+    .eq('user_id', userId);
 
   if (error) {
     console.error(`[habitRoutes DELETE /:id] ${habitId}`, error);
@@ -140,7 +138,8 @@ habitRoutes.delete('/:id', async (c) => {
 
 // GET /:id/completions - Fetch all completions for a habit
 habitRoutes.get('/:id/completions', async (c) => {
-    const user = c.get('user');
+    const payload = c.get('jwtPayload');
+    const userId = payload.sub;
     const habitId = c.req.param('id');
 
     // First, verify the habit belongs to the user to prevent leaking information
@@ -148,7 +147,7 @@ habitRoutes.get('/:id/completions', async (c) => {
         .from('habits')
         .select('id')
         .eq('id', habitId)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .single();
 
     if (habitError || !habit) {
@@ -160,7 +159,7 @@ habitRoutes.get('/:id/completions', async (c) => {
         .from('completions')
         .select('*')
         .eq('habit_id', habitId)
-        .eq('user_id', user.id);
+        .eq('user_id', userId);
 
     if (error) {
         console.error(`[habitRoutes GET /:id/completions] ${habitId}`, error);
@@ -172,7 +171,8 @@ habitRoutes.get('/:id/completions', async (c) => {
 
 // POST /:id/complete - Log a completion for a habit
 habitRoutes.post('/:id/complete', async (c) => {
-    const user = c.get('user');
+    const payload = c.get('jwtPayload');
+    const userId = payload.sub;
     const habitId = c.req.param('id');
     const body = await c.req.json();
 
@@ -181,7 +181,7 @@ habitRoutes.post('/:id/complete', async (c) => {
         .from('habits')
         .select('id')
         .eq('id', habitId)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .single();
 
     if (habitError || !habit) {
@@ -195,7 +195,7 @@ habitRoutes.post('/:id/complete', async (c) => {
         quantity?: number;
     } = {
         habit_id: Number(habitId),
-        user_id: user.id,
+        user_id: userId,
     };
 
     if (body.completed_at) {
