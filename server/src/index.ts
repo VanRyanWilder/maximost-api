@@ -5,13 +5,14 @@ import habitRoutes from './routes/habitRoutes';
 import type { AppEnv } from './hono';
 import type { JwtVariables } from 'hono/jwt'
 
-// Add JWT Variables to the app's context
+// Define a type for the variables that will be available in the context.
+// This includes our environment variables and the JWT payload variables.
 type Variables = AppEnv['Variables'] & JwtVariables;
 
-const app = new Hono<{ Variables: Variables }>().basePath('/api');
+// --- Main Application ---
+// This is the root app. It handles cross-cutting concerns like CORS.
+const app = new Hono<{ Variables: Variables }>();
 
-// --- Middleware ---
-// Note: The order of middleware is important. CORS should come before auth.
 app.use('*', cors({
   origin: '*',
   allowHeaders: ['Authorization', 'Content-Type', 'cache-control', 'pragma', 'expires'],
@@ -19,23 +20,26 @@ app.use('*', cors({
   credentials: true,
 }));
 
-// JWT Authentication Middleware
-// This will protect all routes registered after this line.
-app.use('/*', (c, next) => {
-    // It's important to load the secret from the environment inside the handler
-    // to ensure the latest environment variables are used.
+// --- API Sub-Router ---
+// This app will handle all routes under the /api path.
+const api = new Hono<{ Variables: Variables }>();
+
+// Apply JWT authentication middleware ONLY to this API sub-router.
+api.use('/*', (c, next) => {
     const jwtMiddleware = jwt({
         secret: c.env.SUPABASE_JWT_SECRET,
     });
     return jwtMiddleware(c, next);
 });
 
+// Register our API routes on the sub-router.
+api.route('/habits', habitRoutes);
 
-// --- Routes ---
-app.route('/habits', habitRoutes);
+// Mount the API sub-router onto the main application at the /api path.
+app.route('/api', api);
 
-// A simple health check route that is NOT protected by JWT auth
+// --- Public Routes ---
+// A simple health check route that is NOT part of the API and is not protected.
 app.get('/health', (c) => c.text('OK'));
-
 
 export default app;

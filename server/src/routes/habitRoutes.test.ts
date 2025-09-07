@@ -1,7 +1,5 @@
-import habitRoutes from './habitRoutes';
-import { Hono } from 'hono';
-import { supabase } from '../lib/supabaseClient'; // Import the actual client to be mocked
-import { jwt } from 'hono/jwt';
+import app from '../index'; // Import the actual configured app instance
+import { supabase } from '../lib/supabaseClient';
 
 // Mock the Supabase client
 jest.mock('../lib/supabaseClient', () => ({
@@ -16,7 +14,14 @@ jest.mock('../lib/supabaseClient', () => ({
   },
 }));
 
-// Mock the JWT middleware to provide a user context
+// Mock the JWT middleware by mocking the secret.
+// This is a bit of a trick. We let the real jwt middleware run,
+// but we don't provide a valid token in the test request.
+// The middleware would throw an error.
+// A better approach for a real app might be more complex, but for this,
+// let's just assume the middleware is tested by Hono and we just need to test our routes.
+// The easiest way to "bypass" it for testing our handlers is to mock the module
+// and have it automatically provide the payload.
 jest.mock('hono/jwt', () => ({
     jwt: jest.fn(() => (c, next) => {
       c.set('jwtPayload', { sub: 'test-user-id', aud: 'authenticated' });
@@ -24,24 +29,19 @@ jest.mock('hono/jwt', () => ({
     }),
 }));
 
-describe('Habit Routes with Supabase and hono/jwt', () => {
-  let app: Hono;
+
+describe('Habit API Routes', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-
-    app = new Hono();
-    // Apply the mocked jwt middleware
-    app.use('/habits/*', jwt({ secret: 'test-secret' }));
-    app.route('/habits', habitRoutes);
   });
 
-  // Test for GET /habits
+  // Test for GET /api/habits
   it('should get all habits for a user', async () => {
     const mockHabits = [{ id: 1, name: 'Read a book', user_id: 'test-user-id' }];
     (supabase.select as jest.Mock).mockResolvedValueOnce({ data: mockHabits, error: null });
 
-    const res = await app.request('/habits');
+    const res = await app.request('/api/habits');
 
     expect(supabase.from).toHaveBeenCalledWith('habits');
     expect(supabase.select).toHaveBeenCalledWith('*');
@@ -51,12 +51,12 @@ describe('Habit Routes with Supabase and hono/jwt', () => {
     expect(body).toEqual(mockHabits);
   });
 
-  // Test for GET /habits/:id
+  // Test for GET /api/habits/:id
   it('should get a single habit by ID', async () => {
       const mockHabit = { id: 1, name: 'Read a book', user_id: 'test-user-id' };
       (supabase.single as jest.Mock).mockResolvedValueOnce({ data: mockHabit, error: null });
 
-      const res = await app.request('/habits/1');
+      const res = await app.request('/api/habits/1');
 
       expect(supabase.from).toHaveBeenCalledWith('habits');
       expect(supabase.select).toHaveBeenCalledWith('*');
@@ -68,13 +68,13 @@ describe('Habit Routes with Supabase and hono/jwt', () => {
       expect(body).toEqual(mockHabit);
   });
 
-  // Test for POST /habits
+  // Test for POST /api/habits
   it('should create a new habit', async () => {
     const newHabitPayload = { name: 'Go for a run', start_date: '2025-01-01', frequency_type: 'daily' };
     const createdHabit = { ...newHabitPayload, id: 2, user_id: 'test-user-id' };
     (supabase.single as jest.Mock).mockResolvedValueOnce({ data: createdHabit, error: null });
 
-    const res = await app.request('/habits', {
+    const res = await app.request('/api/habits', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newHabitPayload),
@@ -87,13 +87,13 @@ describe('Habit Routes with Supabase and hono/jwt', () => {
     expect(body).toEqual(createdHabit);
   });
 
-  // Test for PUT /habits/:id
+  // Test for PUT /api/habits/:id
   it('should update a habit', async () => {
     const updatePayload = { name: 'Go for a long run' };
     const updatedHabit = { id: 1, name: 'Go for a long run', user_id: 'test-user-id' };
     (supabase.single as jest.Mock).mockResolvedValueOnce({ data: updatedHabit, error: null });
 
-    const res = await app.request('/habits/1', {
+    const res = await app.request('/api/habits/1', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatePayload),
@@ -108,12 +108,12 @@ describe('Habit Routes with Supabase and hono/jwt', () => {
     expect(body).toEqual(updatedHabit);
   });
 
-  // Test for DELETE /habits/:id
+  // Test for DELETE /api/habits/:id
   it('should delete a habit', async () => {
-    (supabase.delete as jest.Mock).mockReturnThis(); // Make it chainable
+    (supabase.delete as jest.Mock).mockReturnThis(); // Make it chainable for .eq
     (supabase.eq as jest.Mock).mockResolvedValueOnce({ error: null, count: 1 });
 
-    const res = await app.request('/habits/1', {
+    const res = await app.request('/api/habits/1', {
       method: 'DELETE',
     });
 
@@ -124,7 +124,7 @@ describe('Habit Routes with Supabase and hono/jwt', () => {
     expect(res.status).toBe(204);
   });
 
-  // Test for GET /habits/:id/completions
+  // Test for GET /api/habits/:id/completions
   it('should get all completions for a habit', async () => {
     const mockCompletions = [
       { id: 1, habit_id: 1, user_id: 'test-user-id', completed_at: '2025-09-06' },
@@ -135,7 +135,7 @@ describe('Habit Routes with Supabase and hono/jwt', () => {
     // Mock the fetching of completions
     (supabase.select as jest.Mock).mockResolvedValueOnce({ data: mockCompletions, error: null });
 
-    const res = await app.request('/habits/1/completions');
+    const res = await app.request('/api/habits/1/completions');
 
     expect(supabase.from).toHaveBeenCalledWith('habits');
     expect(supabase.from).toHaveBeenCalledWith('completions');
@@ -144,8 +144,8 @@ describe('Habit Routes with Supabase and hono/jwt', () => {
     expect(body).toEqual(mockCompletions);
   });
 
-  // Test for POST /habits/:id/complete
-  describe('POST /habits/:id/complete', () => {
+  // Test for POST /api/habits/:id/complete
+  describe('POST /api/habits/:id/complete', () => {
     beforeEach(() => {
         // Mock the check for the habit's existence for all completion tests
         (supabase.single as jest.Mock).mockResolvedValueOnce({ data: { id: 1 }, error: null });
@@ -156,7 +156,7 @@ describe('Habit Routes with Supabase and hono/jwt', () => {
         // Mock the insert call
         (supabase.single as jest.Mock).mockResolvedValueOnce({ data: newCompletion, error: null });
 
-        const res = await app.request('/habits/1/complete', {
+        const res = await app.request('/api/habits/1/complete', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({}),
@@ -175,13 +175,13 @@ describe('Habit Routes with Supabase and hono/jwt', () => {
         // Mock the insert call
         (supabase.single as jest.Mock).mockResolvedValueOnce({ data: newCompletion, error: null });
 
-        const res = await app.request('/habits/1/complete', {
+        const res = await app.request('/api/habits/1/complete', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
         });
 
-        expect(supabase.insert).toHaveBeenCalledWith(expect.objectContaining({ habit_id: 1, user_id: 'test-user-id', ...payload }));
+        expect(supabase.insert).toHaveBeenCalledWith({ habit_id: 1, user_id: 'test-user-id', ...payload });
         expect(res.status).toBe(201);
         const body = await res.json();
         expect(body).toEqual(newCompletion);
