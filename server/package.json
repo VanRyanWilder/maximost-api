@@ -5,7 +5,7 @@
   "scripts": {
     "build": "node build.mjs",
     "start": "node dist/server.js",
-    "seed": "esbuild src/seed.ts --bundle --platform=node --target=esnext --outfile=dist/seed.js && node dist/seed.js"
+    "seed": "esbuild src/seed.ts --bundle --platform=node --target=node18 --outfile=dist/seed.js --external:@supabase/supabase-js --external:@faker-js/faker && node dist/seed.js"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.0",

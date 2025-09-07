@@ -6,9 +6,15 @@ esbuild.build({
   entryPoints: ['src/server.ts'],
   bundle: true,
   platform: 'node',
-  target: 'esnext',
+  target: 'node18', // More specific target
   outfile: 'dist/server.js',
   format: 'esm',
+  external: [
+    '@hono/node-server',
+    '@supabase/supabase-js',
+    'hono',
+    'jsonwebtoken'
+  ],
 }).then(() => {
   console.log('⚡ Build finished successfully!');
 }).catch((err) => {
