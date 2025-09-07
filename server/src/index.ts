@@ -18,12 +18,22 @@ app.use('*', cors({
   credentials: true,
 }));
 
-// Apply JWT authentication middleware ONLY to routes matching /api/*
-app.use('/api/*', (c, next) => {
+// Global middleware to conditionally apply JWT authentication
+app.use('*', async (c, next) => {
+  // Check if the request path starts with /api/
+  // This is a defensive check to ensure auth is only applied to API routes,
+  // regardless of how the server or framework routing behaves.
+  if (c.req.path.startsWith('/api/')) {
     const jwtMiddleware = jwt({
         secret: c.env.SUPABASE_JWT_SECRET,
     });
+    // If the path matches, execute the JWT middleware.
+    // If JWT validation fails, it will throw an error and stop the request.
     return jwtMiddleware(c, next);
+  } else {
+    // If it's not an API route, skip authentication and proceed.
+    await next();
+  }
 });
 
 // Register API routes with the /api prefix
