@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-  "build": "node build.mjs",
-  "start": "node dist/server.js"
-},
+    "build": "node build.mjs",
+    "start": "node dist/server.js",
+    "seed": "esbuild src/seed.ts --bundle --platform=node --target=esnext --outfile=dist/seed.js && node dist/seed.js"
+  },
   "dependencies": {
     "@hono/node-server": "^1.19.0",
     "@supabase/supabase-js": "^2.44.4",
@@ -14,6 +15,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240725.0",
+    "@faker-js/faker": "^8.4.1",
     "@types/jsonwebtoken": "^9.0.6",
     "esbuild": "^0.23.0",
     "typescript": "^5.5.3"
