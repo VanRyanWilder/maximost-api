@@ -10,35 +10,26 @@ type Variables = AppEnv['Variables'] & JwtVariables;
 
 const app = new Hono<{ Variables: Variables }>();
 
-// Apply CORS middleware to all requests
+// 1. Apply universal middleware first (like CORS)
 app.use('*', cors({
   origin: '*',
-  allowHeaders: ['Authorization', 'Content-Type', 'cache-control', 'pragma', 'expires'],
+  allowHeaders: ['Authorization', 'Content-Type'],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true,
 }));
 
-// --- AUTHENTICATION DISABLED ---
-// The authentication middleware has been temporarily disabled to unblock the frontend.
-// All routes are currently public.
-// TODO: Re-implement a corrected authentication middleware strategy under a new ticket.
-/*
-app.use('*', async (c, next) => {
-  if (c.req.path.startsWith('/api/')) {
-    const jwtMiddleware = jwt({
-        secret: c.env.SUPABASE_JWT_SECRET,
-    });
-    return jwtMiddleware(c, next);
-  } else {
-    await next();
-  }
+// 2. Define the authentication middleware instance
+const authMiddleware = jwt({
+  secret: process.env.SUPABASE_JWT_SECRET!,
 });
-*/
 
-// Register API routes with the /api prefix
+// 3. Define any public routes
+app.get('/health', (c) => c.text('API is running!'));
+
+// 4. Apply the auth middleware ONLY to the /api/* path
+app.use('/api/*', authMiddleware);
+
+// 5. Define protected API routes
 app.route('/api/habits', habitRoutes);
-
-// Register public routes
-app.get('/health', (c) => c.text('OK'));
 
 export default app;
