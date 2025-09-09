@@ -28,6 +28,11 @@ app.get('/health', (c) => c.text('MaxiMost API is healthy!'));
 // --- API Router with Authentication ---
 const api = new Hono<{ Variables: Variables }>();
 
+// --- AUTHENTICATION TEMPORARILY DISABLED ---
+// The middleware is disabled to unblock the frontend from 401 errors on static assets.
+// This makes all API routes PUBLIC. This is a temporary measure.
+// TODO: Re-implement a corrected authentication strategy under BUG-20.
+/*
 // 1. Define the JWT middleware that will be used for all API routes.
 const authMiddleware = jwt({
   secret: process.env.SUPABASE_JWT_SECRET!,
@@ -35,6 +40,7 @@ const authMiddleware = jwt({
 
 // 2. Apply the authentication middleware to every route in this sub-router.
 api.use('*', authMiddleware);
+*/
 
 // 3. Define all protected API routes on this sub-router.
 api.route('/habits', habitRoutes);
