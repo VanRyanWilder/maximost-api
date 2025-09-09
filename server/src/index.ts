@@ -1,17 +1,24 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { jwt } from 'hono/jwt';
 import habitRoutes from './routes/habitRoutes';
-import type { AppEnv } from './hono';
-import type { JwtVariables } from 'hono/jwt'
+import type { App } from './hono';
+import { serve } from '@hono/node-server'
 
-// Define a type for the variables that will be available in the context.
-type Variables = AppEnv['Variables'] & JwtVariables;
+const app: App = new Hono();
 
-// --- Main Application ---
-const app = new Hono<{ Variables: Variables }>();
+// --- DEBUGGING MIDDLEWARE ---
+// This is the very first middleware. It will run for every single request.
+app.use('*', async (c, next) => {
+  console.log(`[DEBUG] Incoming request: Method=${c.req.method}, Path=${c.req.path}`);
+  const headers: { [key: string]: string } = {};
+  c.req.raw.headers.forEach((value, key) => {
+    headers[key] = value;
+  });
+  console.log('[DEBUG] Request Headers:', JSON.stringify(headers, null, 2));
+  await next();
+});
 
-// Apply universal CORS middleware to all routes.
+// CORS
 app.use('*', cors({
   origin: '*',
   allowHeaders: ['Authorization', 'Content-Type'],
@@ -19,28 +26,15 @@ app.use('*', cors({
   credentials: true,
 }));
 
-// --- Public Routes ---
-app.get('/', (c) => c.text('MaxiMost API is running!'));
-app.get('/health', (c) => c.text('MaxiMost API is healthy!'));
+// --- AUTHENTICATION IS COMPLETELY REMOVED FOR DEBUGGING ---
 
-
-// --- API Router with Authentication ---
-const api = new Hono<{ Variables: Variables }>();
-
-// 1. Define the JWT middleware
-const authMiddleware = jwt({
-  secret: process.env.SUPABASE_JWT_SECRET!,
-});
-
-// 2. Apply the middleware ONLY to this api router
-api.use('*', authMiddleware);
-
-// 3. Define all protected API routes here
+// --- API Router (now public) ---
+const api = new Hono();
 api.route('/habits', habitRoutes);
-
-
-// --- Mount the Protected API Router ---
-// This connects the protected 'api' router to the main app at the '/api' path.
 app.route('/api', api);
+
+// --- Public Routes ---
+app.get('/', (c) => c.text('MaxiMost API is running! [DEBUG MODE]'));
+app.get('/health', (c) => c.text('MaxiMost API is healthy! [DEBUG MODE]'));
 
 export default app;
