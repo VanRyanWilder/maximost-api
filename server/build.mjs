@@ -8,7 +8,7 @@ esbuild.build({
   bundle: true,
   platform: 'node',
   target: 'node18',
-  outfile: 'dist/server.js',
+  outdir: 'dist',
   format: 'esm',
   external: Object.keys(pkg.dependencies),
 }).then(() => {
