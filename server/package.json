@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "build": "node build.mjs",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "seed": "node dist/seed.js"
   },
   "dependencies": {
     "@hono/node-server": "^1.11.1",

@@ -1,10 +1,10 @@
 import esbuild from 'esbuild';
-import pkg from './package.json' assert { type: 'json' };
+import pkg from './package.json' with { type: 'json' };
 
 console.log('Starting programmatic esbuild build...');
 
 esbuild.build({
-  entryPoints: ['src/server.ts'],
+  entryPoints: ['src/server.ts', 'src/seed.ts'],
   bundle: true,
   platform: 'node',
   target: 'node18',
