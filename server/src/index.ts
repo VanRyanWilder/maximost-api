@@ -20,7 +20,6 @@ app.use('*', cors({
 }));
 
 // --- Public Routes ---
-// Public routes have no authentication.
 app.get('/', (c) => c.text('MaxiMost API is running!'));
 app.get('/health', (c) => c.text('MaxiMost API is healthy!'));
 
@@ -28,27 +27,20 @@ app.get('/health', (c) => c.text('MaxiMost API is healthy!'));
 // --- API Router with Authentication ---
 const api = new Hono<{ Variables: Variables }>();
 
-// --- AUTHENTICATION TEMPORARILY DISABLED ---
-// The middleware is disabled to unblock the frontend from 401 errors on static assets.
-// This makes all API routes PUBLIC. This is a temporary measure.
-// TODO: Re-implement a corrected authentication strategy under BUG-20.
-/*
-// 1. Define the JWT middleware that will be used for all API routes.
+// 1. Define the JWT middleware
 const authMiddleware = jwt({
   secret: process.env.SUPABASE_JWT_SECRET!,
 });
 
-// 2. Apply the authentication middleware to every route in this sub-router.
+// 2. Apply the middleware ONLY to this api router
 api.use('*', authMiddleware);
-*/
 
-// 3. Define all protected API routes on this sub-router.
+// 3. Define all protected API routes here
 api.route('/habits', habitRoutes);
 
 
 // --- Mount the Protected API Router ---
 // This connects the protected 'api' router to the main app at the '/api' path.
-// Any request starting with /api will be handled by this sub-router.
 app.route('/api', api);
 
 export default app;

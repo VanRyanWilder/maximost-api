@@ -3,19 +3,16 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "node build.mjs",
-    "start": "node dist/server.js",
-    "seed": "esbuild src/seed.ts --bundle --platform=node --target=node18 --outfile=dist/seed.js --external:@supabase/supabase-js --external:@faker-js/faker && node dist/seed.js"
-  },
+  "build": "node build.mjs",
+  "start": "node dist/server.js"
+},
   "dependencies": {
     "@hono/node-server": "^1.19.0",
-    "@supabase/supabase-js": "^2.44.4",
     "hono": "^4.5.1",
     "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240725.0",
-    "@faker-js/faker": "^8.4.1",
     "@types/jsonwebtoken": "^9.0.6",
     "esbuild": "^0.23.0",
     "typescript": "^5.5.3"
