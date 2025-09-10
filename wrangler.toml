@@ -1,4 +1,0 @@
-name = "maximost-api"
-main = "server/src/index.ts"
-compatibility_date = "2025-08-24"
-compatibility_flags = [ "nodejs_compat" ]
