@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import type { Hono } from 'hono';
 import type { AppEnv } from '../hono'; // Import the shared AppEnv type
 
 // Create a new Hono instance specifically for these auth routes.

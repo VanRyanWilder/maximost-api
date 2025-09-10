@@ -1,5 +1,5 @@
 import { jsonWithCors } from '../utils/response';
-import { Hono } from 'hono';
+import type { Hono } from 'hono';
 import { firestoreAPI } from '../lib/firestore-helper';
 import { parseFirestoreDoc } from '../lib/firestore-parser';
 import type { JwtVariables } from 'hono/jwt';

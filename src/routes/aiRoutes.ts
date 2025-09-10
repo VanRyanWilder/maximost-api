@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import type { Hono } from 'hono';
 import type { AppEnv } from '../hono';
 import { authMiddleware } from '../middleware/authMiddleware';
 import { GoogleGenerativeAI } from '@google/generative-ai';

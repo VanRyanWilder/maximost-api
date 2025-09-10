@@ -1,5 +1,5 @@
 import habitRoutes from './habitRoutes';
-import { Hono } from 'hono';
+import type { Hono } from 'hono';
 import { Context, Next } from 'hono';
 import { firestoreAPI } from '../lib/firestore-helper';
 

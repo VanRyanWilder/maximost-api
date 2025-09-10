@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import type { Hono } from 'hono';
 import type { AppEnv } from '../hono';
 import { protect } from '../middleware/auth';
 import { firestoreAPI } from '../lib/firestore-helper';
