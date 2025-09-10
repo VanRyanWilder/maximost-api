@@ -1,44 +1,48 @@
 {
-  // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
-    // File Layout
-    // "rootDir": "./src",
-    // "outDir": "./dist",
-
-    // Environment Settings
-    // See also https://aka.ms/tsconfig/module
-    "module": "nodenext",
+    /* --- Core Module Settings --- */
+    // These settings are crucial for a modern Node.js project.
+    // They work with "type": "module" in your package.json.
     "target": "esnext",
-    "types": [],
-    // For nodejs:
-    // "lib": ["esnext"],
-    // "types": ["node"],
-    // and npm install -D @types/node
-
-    // Other Outputs
-    "sourceMap": true,
-    "declaration": true,
-    "declarationMap": true,
-
-    // Stricter Typechecking Options
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "esModuleInterop": true, // Recommended for better compatibility with different module types.
+    "verbatimModuleSyntax": true, // Enforces modern, unambiguous import/export syntax.
+    
+    /* --- File Structure --- */
+    // These must be uncommented. They tell TypeScript where to find your code
+    // and where to put the compiled JavaScript.
+    "rootDir": "./src",
+    "outDir": "./dist",
+    
+    /* --- Type Definitions --- */
+    // This fixes the "Cannot find name 'jest'" and other Node-related errors.
+    "types": ["jest", "node"],
+    
+    /* --- Strictness & Quality --- */
+    // These are excellent settings for catching bugs early.
+    "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
-
-    // Style Options
-    // "noImplicitReturns": true,
-    // "noImplicitOverride": true,
-    // "noUnusedLocals": true,
-    // "noUnusedParameters": true,
-    // "noFallthroughCasesInSwitch": true,
-    // "noPropertyAccessFromIndexSignature": true,
-
-    // Recommended Options
-    "strict": true,
-    "jsx": "react-jsx",
-    "verbatimModuleSyntax": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    
+    /* --- Project Configuration --- */
+    "jsx": "react-jsx", // Keep this if you have React components in this project.
+    "resolveJsonModule": true, // Allows you to import JSON files directly.
     "isolatedModules": true,
-    "noUncheckedSideEffectImports": true,
-    "moduleDetection": "force",
-    "skipLibCheck": true,
-  }
+    "skipLibCheck": true, // Prevents type-checking errors in your node_modules.
+    "forceConsistentCasingInFileNames": true,
+    
+    /* --- Path Aliases (Optional but Recommended) --- */
+    // This helps fix pathing errors like "Cannot find module '@/index'".
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  },
+  // Tells the compiler which files to include.
+  "include": ["src/**/*"],
+  // Tells the compiler which files to ignore.
+  "exclude": ["node_modules", "dist"]
 }
