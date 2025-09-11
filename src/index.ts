@@ -1,81 +1,40 @@
-try {
-  // --- Environment Variable Check ---
-  // This block runs first to ensure all required secrets are available.
-  const requiredEnvVars = [
-    'SUPABASE_URL',
-    'SUPABASE_SERVICE_ROLE_KEY',
-    'SUPABASE_JWT_SECRET',
-  ];
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { jwt } from 'hono/jwt';
+import habitRoutes from './routes/habitRoutes.js';
+import type { AppEnv } from './hono.js';
 
-  for (const envVar of requiredEnvVars) {
-    if (!process.env[envVar]) {
-      // This will crash the app and print a clear error in the Render logs.
-      throw new Error(`CRITICAL ERROR: Missing required environment variable: ${envVar}`);
-    }
-  }
-  console.log("index.ts: All required environment variables are present.");
-  // --- End of Check ---
+// --- Main Application ---
+// The Hono instance is now strongly typed with our custom environment.
+const app = new Hono<{ Bindings: AppEnv }>();
 
+// Apply universal CORS middleware.
+app.use('*', cors({
+  origin: '*',
+  allowHeaders: ['Authorization', 'Content-Type'],
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+}));
 
-  console.log("index.ts: Main application module loading...");
+// --- Public Routes ---
+app.get('/', (c) => c.text('MaxiMost API is running!'));
 
-  // Imports are here, if one of them fails, the catch block will grab it.
-  const { Hono } = await import('hono');
-  const { cors } = await import('hono/cors');
-  const { jwt } = await import('hono/jwt');
-  const habitRoutes = (await import('./routes/habitRoutes.js')).default;
-  
-  console.log("index.ts: All modules imported successfully.");
+// --- API Router with Authentication ---
+const api = new Hono<{ Bindings: AppEnv }>();
 
+// Apply the JWT middleware ONLY to this api router.
+// This middleware will automatically decode the token and add a `payload`
+// object to the context, which we can use in our routes.
+api.use('*', jwt({
+  secret: process.env.SUPABASE_JWT_SECRET!,
+}));
 
-  // Define a type for the variables that will be available in the context.
-  // Note: We cannot use `AppEnv` and `JwtVariables` with dynamic imports easily,
-  // so we simplify the type for now to get the server running.
-  const app = new Hono();
+// All routes attached here are now protected.
+api.route('/habits', habitRoutes);
+// You can add other routes like this:
+// api.route('/journal', journalRoutes);
 
-  // Apply universal CORS middleware to all routes.
-  app.use('*', cors({
-    origin: '*',
-    allowHeaders: ['Authorization', 'Content-Type'],
-    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    credentials: true,
-  }));
+// Mount the protected API router under the '/api' path.
+app.route('/api', api);
 
-  // --- Public Routes ---
-  app.get('/', (c) => c.text('MaxiMost API is running!'));
-  app.get('/health', (c) => c.text('MaxiMost API is healthy!'));
-
-
-  // --- API Router with Authentication ---
-  const api = new Hono();
-  
-  // 1. Define the JWT middleware
-  console.log("index.ts: Defining JWT middleware...");
-  const secret = process.env.SUPABASE_JWT_SECRET!;
-  const authMiddleware = jwt({ secret });
-  console.log("index.ts: JWT middleware defined successfully.");
-
-  // 2. Apply the middleware ONLY to this api router
-  api.use('*', authMiddleware);
-
-  // 3. Define all protected API routes here
-  api.route('/habits', habitRoutes);
-
-
-  // --- Mount the Protected API Router ---
-  // This connects the protected 'api' router to the main app at the '/api' path.
-  app.route('/api', api);
-
-  // Export the app as the default export
-  // @ts-ignore
-  globalThis.app = app;
-
-} catch (error) {
-  console.error("!!!!!!!!!! FATAL ERROR IN index.ts !!!!!!!!!!");
-  console.error(error);
-  process.exit(1); // Force exit with an error code
-}
-
-// @ts-ignore
-export default globalThis.app;
+export default app;
 
