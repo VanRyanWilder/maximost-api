@@ -15,6 +15,8 @@ app.use('*', cors({
     'https://maximost-frontend.vercel.app',
     'https://maximost.com',
     'https://www.maximost.com',
+    // Main Git Branch Production URL
+    'https://maximost-frontend-git-main-vanryanwilders-projects.vercel.app',
     // Regular Expression for all Vercel Preview Deployments
     /^https:\/\/maximost-frontend-.*-vanryanwilders-projects\.vercel\.app$/,
     // Local Development
