@@ -22,7 +22,8 @@ app.use('*', cors({
 // CORRECTED: Add an explicit handler for OPTIONS preflight requests.
 // This runs before any other middleware and responds immediately, which is what browsers expect.
 app.options('*', (c) => {
-  return c.text('', 204); // Respond with 204 No Content
+  // Use c.newResponse for responses with no body content.
+  return c.newResponse(null, 204);
 });
 
 
