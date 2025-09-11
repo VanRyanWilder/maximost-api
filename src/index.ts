@@ -10,10 +10,15 @@ import type { AppEnv } from './hono.js';
 const app = new Hono<AppEnv>();
 
 // Apply universal CORS middleware.
+// CORRECTED: We are now specifying the exact frontend origin to allow.
 app.use('*', cors({
-  origin: '*',
+  origin: [
+    'https://maximost-frontend-git-fix-frontend-401-unauthorized-vanryanwilders-projects.vercel.app',
+    'http://localhost:5173' // Also allow localhost for local development
+  ],
   allowHeaders: ['Authorization', 'Content-Type'],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true,
 }));
 
 // --- Public Routes ---
@@ -36,3 +41,4 @@ api.route('/ai', aiRoutes); // Mount the AI routes
 app.route('/api', api);
 
 export default app;
+
