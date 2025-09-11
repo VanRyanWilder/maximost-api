@@ -11,10 +11,14 @@ const app = new Hono<AppEnv>();
 // Apply universal CORS middleware. This will handle the actual requests (GET, POST, etc.)
 app.use('*', cors({
   origin: [
-    'https://maximost-frontend-hgvvk62wy-vanryanwilders-projects.vercel.app', // Old URL
-    'https://maximost-frontend-hgx4vk2xi-vanryanwilders-projects.vercel.app', // Old URL
-    'https://maximost-frontend-czbidt20o-vanryanwilders-projects.vercel.app', // CORRECTED: Added the LATEST Vercel preview URL
-    'http://localhost:5173' // Also allow localhost for local development
+    // Production Domains
+    'https://maximost-frontend.vercel.app',
+    'https://maximost.com',
+    'https://www.maximost.com',
+    // Regular Expression for all Vercel Preview Deployments
+    /^https:\/\/maximost-frontend-.*-vanryanwilders-projects\.vercel\.app$/,
+    // Local Development
+    'http://localhost:5173'
   ],
   allowHeaders: ['Authorization', 'Content-Type'],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
