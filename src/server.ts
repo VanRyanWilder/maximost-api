@@ -21,16 +21,3 @@ try {
   console.error(error);
   process.exit(1); // Force exit with an error code
 }
-```
-
-### Step 2: Add a Log to Your Main `index.ts` File
-
-To see how far the application gets, add a console log at the very top of your `src/index.ts` file.
-
-```typescript
-// Add this line at the top of src/index.ts
-console.log("index.ts: Main application module loading..."); 
-
-import { Hono } from 'hono';
-// ... rest of your file
-

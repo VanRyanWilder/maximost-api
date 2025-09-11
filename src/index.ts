@@ -1,3 +1,5 @@
+console.log("index.ts: Main application module loading...");
+
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { jwt } from 'hono/jwt';
