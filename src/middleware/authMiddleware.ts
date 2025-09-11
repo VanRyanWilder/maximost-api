@@ -1,46 +1,62 @@
 import type { Context, Next } from 'hono';
 import { verify } from 'hono/jwt';
+import { supabase } from '../lib/supabase-client.js';
 
-// Define a custom context type that includes the user payload
-export interface AuthContext extends Context {
-  user?: {
-    id: string;
-    email?: string;
-    // Add any other user properties from your JWT payload here
-  };
+/**
+ * This is the richer user object structure that your userRoutes.ts expects.
+ * It should match the structure of a user in your Supabase 'profiles' table.
+ */
+interface UserPayload {
+  user_id: string;
+  email: string;
+  name: string;
 }
 
-export const authMiddleware = async (c: AuthContext, next: Next) => {
-  // 1. Get the Authorization header
+// Define a custom context type that includes the full user payload
+export interface AuthContext extends Context {
+  user?: UserPayload;
+}
+
+export const authMiddleware = async (c: AuthContext, next: Next): Promise<void | Response> => {
   const authHeader = c.req.header('Authorization');
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return c.json({ error: 'Authorization header is missing or invalid' }, 401);
   }
 
-  // 2. Extract the token
   const token = authHeader.split(' ')[1];
   if (!token) {
     return c.json({ error: 'Token is missing' }, 401);
   }
 
   try {
-    // 3. Verify the token using the secret key from your environment variables
-    const decodedPayload = await verify(token, process.env.JWT_SECRET || '');
-
-    if (!decodedPayload || typeof decodedPayload.id !== 'string') {
+    // Step 1: Verify the JWT using your Supabase JWT Secret.
+    const decodedPayload = await verify(token, process.env.SUPABASE_JWT_SECRET || '');
+    if (!decodedPayload || typeof decodedPayload.sub !== 'string') {
         throw new Error('Invalid token payload');
     }
+    const userId = decodedPayload.sub;
 
-    // 4. Attach the user payload to the context and proceed
-    c.user = { id: decodedPayload.id, email: decodedPayload.email as string | undefined };
+    // Step 2: Fetch the full user profile from your Supabase 'profiles' table.
+    const { data: userProfile, error: dbError } = await supabase
+      .from('profiles')
+      .select('user_id, email, name')
+      .eq('user_id', userId)
+      .single();
+
+    if (dbError || !userProfile) {
+      console.error('Supabase fetch error:', dbError?.message);
+      return c.json({ error: 'User not found' }, 404);
+    }
+    
+    // Step 3: Attach the rich, full user object from Supabase to the context.
+    c.user = userProfile;
+
     await next();
-    // After next() is called, the middleware is done.
-    // We don't return anything here, as the response is handled by the route handler.
-    // However, to satisfy TypeScript's noImplicitReturns, we can return nothing explicitly.
-    return;
+
   } catch (error) {
-    // If the token is invalid or expired, return an error
+    console.error('JWT verification error:', (error as Error).message);
     return c.json({ error: 'Invalid or expired token' }, 401);
   }
 };
+
