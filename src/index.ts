@@ -8,7 +8,8 @@ import type { AppEnv } from './hono.js';
 // --- Main Application ---
 const app = new Hono<AppEnv>();
 
-// Apply universal CORS middleware. This will handle the actual requests (GET, POST, etc.)
+// Apply universal CORS middleware. This will handle all CORS requests,
+// including preflight OPTIONS requests.
 app.use('*', cors({
   origin: [
     // Production Domains
@@ -17,7 +18,9 @@ app.use('*', cors({
     'https://www.maximost.com',
     // Main Git Branch Production URL
     'https://maximost-frontend-git-main-vanryanwilders-projects.vercel.app',
-    // Regular Expression for all Vercel Preview Deployments
+    // Add the latest preview URL explicitly
+    'https://maximost-frontend-98lz0bn3g-vanryanwilders-projects.vercel.app',
+    // Regular Expression for all future Vercel Preview Deployments
     /^https:\/\/maximost-frontend-.*-vanryanwilders-projects\.vercel\.app$/,
     // Local Development
     'http://localhost:5173'
@@ -26,14 +29,6 @@ app.use('*', cors({
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true,
 }));
-
-// Add an explicit handler for OPTIONS preflight requests.
-// This runs before any other middleware and responds immediately, which is what browsers expect.
-app.options('*', (c) => {
-  // Use c.newResponse for responses with no body content.
-  return c.newResponse(null, 204);
-});
-
 
 // --- Public Routes ---
 app.get('/', (c) => c.text('MaxiMost API is running!'));
