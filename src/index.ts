@@ -12,7 +12,8 @@ const app = new Hono<AppEnv>();
 app.use('*', cors({
   origin: [
     'https://maximost-frontend-hgvvk62wy-vanryanwilders-projects.vercel.app', // Old URL
-    'https://maximost-frontend-hgx4vk2xi-vanryanwilders-projects.vercel.app', // CORRECTED: Added the new Vercel preview URL
+    'https://maximost-frontend-hgx4vk2xi-vanryanwilders-projects.vercel.app', // Old URL
+    'https://maximost-frontend-czbidt20o-vanryanwilders-projects.vercel.app', // CORRECTED: Added the LATEST Vercel preview URL
     'http://localhost:5173' // Also allow localhost for local development
   ],
   allowHeaders: ['Authorization', 'Content-Type'],
