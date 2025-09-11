@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { jwt } from 'hono/jwt';
-import habitRoutes from './routes/habitRoutes';
-import type { AppEnv } from './hono';
+import habitRoutes from './routes/habitRoutes.js';
+import type { AppEnv } from './hono.js';
 import type { JwtVariables } from 'hono/jwt'
 
 // Define a type for the variables that will be available in the context.

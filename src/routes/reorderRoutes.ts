@@ -1,13 +1,16 @@
-import type { Hono } from 'hono';
-import type { AppEnv } from '../hono';
-import { authMiddleware } from '../middleware/authMiddleware';
-import { firestoreAPI } from '../lib/firestore-helper';
+import { Hono } from 'hono';
+import supabase from '../lib/supabase-client.js'; // Import Supabase client
+import { authMiddleware } from '../middleware/authMiddleware.js'; // Your auth middleware
+import type { AuthContext } from '../middleware/authMiddleware.js'; // The custom context type
 
-const reorderRoutes = new Hono<AppEnv>();
+const reorderRoutes = new Hono();
 
-reorderRoutes.post('/habits/reorder', authMiddleware, async (c) => {
-    const user = c.get('user');
-    const userToken = c.get('userToken');
+reorderRoutes.post('/habits/reorder', authMiddleware, async (c: AuthContext) => {
+    const user = c.user;
+    if (!user) {
+        return c.json({ error: 'User not authenticated' }, 401);
+    }
+
     const { orderedIds } = await c.req.json();
 
     if (!orderedIds || !Array.isArray(orderedIds)) {
@@ -15,20 +18,30 @@ reorderRoutes.post('/habits/reorder', authMiddleware, async (c) => {
     }
 
     try {
-        const writes = orderedIds.map((id: string, index: number) => ({
-            update: {
-                name: `projects/${c.env.FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${user.localId}/habits/${id}`,
-                fields: {
-                    order: { integerValue: index }
-                }
-            }
-        }));
+        const updates = orderedIds.map((id: string, index: number) =>
+            supabase
+                .from('habits')
+                .update({ order: index })
+                .eq('id', id)
+                .eq('user_id', user.id)
+        );
 
-        await firestoreAPI(c.env, userToken, ':batchWrite', 'POST', { writes });
+        const results = await Promise.all(updates);
+
+        // Check for errors returned from Supabase in each of the update results
+        const errors = results.map(res => res.error).filter(Boolean);
+
+        if (errors.length > 0) {
+            console.error('Errors updating habit order:', errors);
+            // You might want to return more specific error details here
+            return c.json({ error: 'One or more habits could not be reordered.' }, { status: 500 });
+        }
 
         return c.json({ success: true, message: 'Habit order updated successfully' });
     } catch (error: any) {
-        return c.json({ success: false, message: error.message }, 500);
+        // This will catch network errors or other unexpected issues with Promise.all
+        console.error('Unexpected error during habit reorder:', error.message);
+        return c.json({ error: 'An unexpected error occurred while reordering habits.' }, { status: 500 });
     }
 });
 

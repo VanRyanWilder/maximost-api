@@ -1,6 +1,6 @@
-import type { Hono } from 'hono';
-import type { AppEnv } from '../hono';
-import { authMiddleware } from '../middleware/authMiddleware';
+import { Hono } from 'hono';
+import type { AppEnv } from '../hono.js';
+import { authMiddleware } from '../middleware/authMiddleware.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const aiRoutes = new Hono<AppEnv>();

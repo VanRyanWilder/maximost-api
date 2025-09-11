@@ -1,68 +1,75 @@
-import { sign } from 'hono/jwt';
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  getAuth,
-} from 'firebase/auth';
-
-// IMPORTANT: Ensure you have initialized Firebase elsewhere in your application.
-const auth = getAuth();
+import supabase from './supabase-client.js'
+import { sign } from 'hono/jwt'
 
 /**
  * Creates a JSON Web Token (JWT) for a given user ID.
+ * This is a simplified version for demonstration. In a real-world scenario,
+ * you would likely use Supabase's built-in JWT handling.
  * @param userId - The ID of the user.
  * @returns A promise that resolves to the JWT string.
  */
 const createToken = async (userId: string): Promise<string> => {
-  if (!process.env.JWT_SECRET) {
-    throw new Error('JWT_SECRET environment variable is not set!');
+  if (!process.env.SUPABASE_JWT_SECRET) {
+    throw new Error('SUPABASE_JWT_SECRET environment variable is not set!')
   }
   const payload = {
-    id: userId,
+    sub: userId,
+    // Role for row-level security (RLS)
+    role: 'authenticated',
     // Token expires in 1 hour
     exp: Math.floor(Date.now() / 1000) + 60 * 60,
-  };
-  return await sign(payload, process.env.JWT_SECRET);
-};
+  }
+  return await sign(payload, process.env.SUPABASE_JWT_SECRET)
+}
 
 /**
- * Handles user signup.
- * Creates a new user in Firebase Authentication.
+ * Handles user signup with Supabase.
  * @param email - The user's email.
  * @param password - The user's password.
  * @returns A promise that resolves to the JWT for the new user.
  */
 export const signup = async (email: string, password: string): Promise<string> => {
-  try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-    // Create a token for the newly signed-up user
-    const token = await createToken(user.uid);
-    return token;
-  } catch (error: any) {
-    // You can add more specific error handling here
-    console.error("Signup Error:", error.message);
-    throw new Error('Could not sign up user.');
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+  })
+
+  if (error) {
+    console.error('Signup Error:', error.message)
+    throw new Error('Could not sign up user.')
   }
-};
+
+  if (!data.user) {
+    throw new Error('User not created.')
+  }
+
+  // Create a token for the newly signed-up user
+  const token = await createToken(data.user.id)
+  return token
+}
 
 /**
- * Handles user login.
- * Signs in a user with Firebase Authentication.
+ * Handles user login with Supabase.
  * @param email - The user's email.
  * @param password - The user's password.
  * @returns A promise that resolves to the JWT for the logged-in user.
  */
 export const login = async (email: string, password: string): Promise<string> => {
-  try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-    // Create a token for the successfully logged-in user
-    const token = await createToken(user.uid);
-    return token;
-  } catch (error: any) {
-    // You can add more specific error handling here
-    console.error("Login Error:", error.message);
-    throw new Error('Invalid email or password.');
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  })
+
+  if (error) {
+    console.error('Login Error:', error.message)
+    throw new Error('Invalid email or password.')
   }
-};
+
+  if (!data.user) {
+    throw new Error('User not found.')
+  }
+
+  // Create a token for the successfully logged-in user
+  const token = await createToken(data.user.id)
+  return token
+}

@@ -5,6 +5,7 @@ import { verify } from 'hono/jwt';
 export interface AuthContext extends Context {
   user?: {
     id: string;
+    email?: string;
     // Add any other user properties from your JWT payload here
   };
 }
@@ -32,9 +33,12 @@ export const authMiddleware = async (c: AuthContext, next: Next) => {
     }
 
     // 4. Attach the user payload to the context and proceed
-    c.user = { id: decodedPayload.id };
+    c.user = { id: decodedPayload.id, email: decodedPayload.email as string | undefined };
     await next();
-
+    // After next() is called, the middleware is done.
+    // We don't return anything here, as the response is handled by the route handler.
+    // However, to satisfy TypeScript's noImplicitReturns, we can return nothing explicitly.
+    return;
   } catch (error) {
     // If the token is invalid or expired, return an error
     return c.json({ error: 'Invalid or expired token' }, 401);

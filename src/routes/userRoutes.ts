@@ -1,43 +1,36 @@
-import type { Hono } from 'hono';
-import type { AppEnv } from '../hono';
-import { protect } from '../middleware/auth';
-import { firestoreAPI } from '../lib/firestore-helper';
-import { parseFirestoreDoc } from '../lib/firestore-parser';
-import type { FirebaseUser } from '../middleware/auth';
+import { Hono } from 'hono';
+import supabase from '../lib/supabase-client.js';
+import { authMiddleware } from '../middleware/authMiddleware.js';
+import type { AuthContext } from '../middleware/authMiddleware.js';
 
-const userRoutes = new Hono<AppEnv & { Variables: { user: FirebaseUser } }>();
+const userRoutes = new Hono();
 
-userRoutes.use('/*', protect);
+userRoutes.use('/*', authMiddleware);
 
-userRoutes.post('/initialize', async (c) => {
-  const user = c.get('user');
-  const authHeader = c.req.header('Authorization');
-  const userToken = authHeader?.split(' ')[1] || null;
-
-  if (!userToken) {
-    return c.json({ success: false, message: 'Token not found' }, 401);
-  }
-
-  try {
-    const userDoc = await firestoreAPI(c.env, userToken, `/users/${user.user_id}`, 'GET');
-
-    if (userDoc) {
-      const parsedUser = parseFirestoreDoc(userDoc);
-      return c.json({ success: true, user: { id: userDoc.name.split('/').pop(), ...parsedUser } });
-    } else {
-      const newUser = {
-        fields: {
-          email: { stringValue: user.email },
-          displayName: { stringValue: user.name || user.email },
-          createdAt: { timestampValue: new Date().toISOString() },
-        },
-      };
-      const createdUser = await firestoreAPI(c.env, userToken, `/users/${user.user_id}`, 'POST', newUser);
-      return c.json({ success: true, user: createdUser }, 201);
+userRoutes.post('/initialize', async (c: AuthContext) => {
+    const user = c.user;
+    if (!user) {
+        return c.json({ error: 'User not authenticated' }, 401);
     }
-  } catch (error: any) {
-    return c.json({ success: false, message: error.message }, 500);
-  }
+
+    // This route is called after signup to ensure a user profile exists in our public.users table.
+    // Supabase auth automatically creates a user in the auth.users table, but not our public one.
+    // We use `upsert` to either insert a new row or do nothing if the user.id already exists.
+    const { data, error } = await supabase
+        .from('users')
+        .upsert({
+            id: user.id,
+            email: user.email,
+        })
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error initializing user:', error.message);
+        return c.json({ error: 'Failed to initialize user' }, 500);
+    }
+
+    return c.json(data);
 });
 
 export default userRoutes;
