@@ -19,7 +19,7 @@ userRoutes.post('/initialize', async (c: AuthContext) => {
     const { data, error } = await supabase
         .from('users')
         .upsert({
-            id: user.id,
+            id: user.user_id,
             email: user.email,
         })
         .select()

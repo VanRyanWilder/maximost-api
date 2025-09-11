@@ -23,7 +23,7 @@ reorderRoutes.post('/habits/reorder', authMiddleware, async (c: AuthContext) => 
                 .from('habits')
                 .update({ order: index })
                 .eq('id', id)
-                .eq('user_id', user.id)
+                .eq('user_id', user.user_id)
         );
 
         const results = await Promise.all(updates);

@@ -22,7 +22,7 @@ habitRoutes.get('/', async (c: AuthContext) => {
   const { data, error } = await supabase
     .from('habits')
     .select('*')
-    .eq('user_id', user.id);
+    .eq('user_id', user.user_id);
 
   if (error) {
     console.error('Error fetching habits:', error.message);
@@ -50,7 +50,7 @@ habitRoutes.post('/', async (c: AuthContext) => {
         .insert({
             name: name,
             description: description,
-            user_id: user.id,
+            user_id: user.user_id,
         })
         .select() // .select() returns the newly created row
         .single(); // .single() returns a single object instead of an array
@@ -76,7 +76,7 @@ habitRoutes.put('/:id', async (c: AuthContext) => {
         .from('habits')
         .update({ name, description })
         .eq('id', id)
-        .eq('user_id', user.id)
+        .eq('user_id', user.user_id)
         .select()
         .single();
 
@@ -100,7 +100,7 @@ habitRoutes.delete('/:id', async (c: AuthContext) => {
         .from('habits')
         .delete()
         .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('user_id', user.user_id);
 
     if (error) {
         console.error('Error deleting habit:', error.message);

@@ -21,7 +21,7 @@ journalRoutes.get('/', async (c: AuthContext) => {
   const { data, error } = await supabase
     .from('journal_entries')
     .select('*')
-    .eq('user_id', user.id);
+    .eq('user_id', user.user_id);
 
   if (error) {
     console.error('Error fetching journal entries:', error.message);
@@ -51,7 +51,7 @@ journalRoutes.post('/', async (c: AuthContext) => {
             content: content,
             mood: mood,
             tags: tags,
-            user_id: user.id,
+            user_id: user.user_id,
         })
         .select() // .select() returns the newly created row
         .single(); // .single() returns a single object instead of an array
@@ -77,7 +77,7 @@ journalRoutes.put('/:entryId', async (c: AuthContext) => {
         .from('journal_entries')
         .update({ date, content, mood, tags })
         .eq('id', entryId)
-        .eq('user_id', user.id)
+        .eq('user_id', user.user_id)
         .select()
         .single();
 
@@ -101,7 +101,7 @@ journalRoutes.delete('/:entryId', async (c: AuthContext) => {
         .from('journal_entries')
         .delete()
         .eq('id', entryId)
-        .eq('user_id', user.id);
+        .eq('user_id', user.user_id);
 
     if (error) {
         console.error('Error deleting journal entry:', error.message);
