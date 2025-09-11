@@ -11,7 +11,8 @@ const app = new Hono<AppEnv>();
 // Apply universal CORS middleware. This will handle the actual requests (GET, POST, etc.)
 app.use('*', cors({
   origin: [
-    'https://maximost-frontend-hgvvk62wy-vanryanwilders-projects.vercel.app',
+    'https://maximost-frontend-hgvvk62wy-vanryanwilders-projects.vercel.app', // Old URL
+    'https://maximost-frontend-hgx4vk2xi-vanryanwilders-projects.vercel.app', // CORRECTED: Added the new Vercel preview URL
     'http://localhost:5173' // Also allow localhost for local development
   ],
   allowHeaders: ['Authorization', 'Content-Type'],
@@ -19,7 +20,7 @@ app.use('*', cors({
   credentials: true,
 }));
 
-// CORRECTED: Add an explicit handler for OPTIONS preflight requests.
+// Add an explicit handler for OPTIONS preflight requests.
 // This runs before any other middleware and responds immediately, which is what browsers expect.
 app.options('*', (c) => {
   // Use c.newResponse for responses with no body content.
