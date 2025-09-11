@@ -1,3 +1,21 @@
+// --- Environment Variable Check ---
+// This block runs first to ensure all required secrets are available.
+const requiredEnvVars = [
+  'SUPABASE_URL',
+  'SUPABASE_SERVICE_ROLE_KEY',
+  'SUPABASE_JWT_SECRET',
+];
+
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    // This will crash the app and print a clear error in the Render logs.
+    throw new Error(`CRITICAL ERROR: Missing required environment variable: ${envVar}`);
+  }
+}
+console.log("index.ts: All required environment variables are present.");
+// --- End of Check ---
+
+
 console.log("index.ts: Main application module loading...");
 
 import { Hono } from 'hono';
@@ -46,3 +64,4 @@ api.route('/habits', habitRoutes);
 app.route('/api', api);
 
 export default app;
+
