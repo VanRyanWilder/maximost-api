@@ -1,14 +1,15 @@
 import { Hono } from 'hono';
 import type { AppEnv } from '../hono.js';
-import { authMiddleware } from '../middleware/authMiddleware.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const aiRoutes = new Hono<AppEnv>();
 
-aiRoutes.use('/*', authMiddleware);
+// Note: The auth middleware is now applied in the main index.ts file.
+// We can get the user ID from the JWT payload.
 
 aiRoutes.get('/daily-directive', async (c) => {
-    const userId = c.get('userId');
+    const payload = c.get('jwtPayload');
+    const userId = payload.sub;
     // In a real app, you'd fetch user preferences here
     const preferredCoach = 'The Stoic'; // Hardcoded for now
 
@@ -30,7 +31,7 @@ aiRoutes.get('/daily-directive', async (c) => {
         return c.json({ directive: text });
     } catch (error) {
         console.error('Error generating daily directive:', error);
-        return c.json({ directive: 'Focus on your highest priority task.' }, 500);
+        return c.json({ directive: 'Focus on your highest priority task.' }, { status: 500 });
     }
 });
 

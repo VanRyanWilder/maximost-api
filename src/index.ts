@@ -2,45 +2,37 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { jwt } from 'hono/jwt';
 import habitRoutes from './routes/habitRoutes.js';
+import aiRoutes from './routes/aiRoutes.js'; // Import the new AI routes
 import type { AppEnv } from './hono.js';
-import type { JwtVariables } from 'hono/jwt'
-
-// Define a type for the variables that will be available in the context.
-type Variables = AppEnv['Variables'] & JwtVariables;
 
 // --- Main Application ---
-const app = new Hono<{ Variables: Variables }>();
+// CORRECTED: The Hono instance is now correctly typed with just AppEnv.
+const app = new Hono<AppEnv>();
 
-// Apply universal CORS middleware to all routes.
+// Apply universal CORS middleware.
 app.use('*', cors({
   origin: '*',
   allowHeaders: ['Authorization', 'Content-Type'],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  credentials: true,
 }));
 
 // --- Public Routes ---
 app.get('/', (c) => c.text('MaxiMost API is running!'));
-app.get('/health', (c) => c.text('MaxiMost API is healthy!'));
-
 
 // --- API Router with Authentication ---
-const api = new Hono<{ Variables: Variables }>();
+// CORRECTED: This router is also correctly typed with just AppEnv.
+const api = new Hono<AppEnv>();
 
-// 1. Define the JWT middleware
-const authMiddleware = jwt({
+// Apply the JWT middleware to all routes attached to this `api` router.
+api.use('*', jwt({
   secret: process.env.SUPABASE_JWT_SECRET!,
-});
+}));
 
-// 2. Apply the middleware ONLY to this api router
-api.use('*', authMiddleware);
-
-// 3. Define all protected API routes here
+// All routes attached here are now protected.
 api.route('/habits', habitRoutes);
+api.route('/ai', aiRoutes); // Mount the AI routes
 
-
-// --- Mount the Protected API Router ---
-// This connects the protected 'api' router to the main app at the '/api' path.
+// Mount the protected API router under the '/api' path.
 app.route('/api', api);
 
 export default app;
