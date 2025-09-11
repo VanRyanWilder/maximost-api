@@ -8,23 +8,32 @@ import type { AppEnv } from './hono.js';
 // --- Main Application ---
 const app = new Hono<AppEnv>();
 
-// Apply universal CORS middleware. This will handle all CORS requests,
-// including preflight OPTIONS requests.
+// --- CORS Configuration ---
+const allowedOrigins = [
+  // Production Domains
+  'https://maximost-frontend.vercel.app',
+  'https://maximost.com',
+  'https://www.maximost.com',
+  // Main Git Branch Production URL
+  'https://maximost-frontend-git-main-vanryanwilders-projects.vercel.app',
+  // Regular Expression for all Vercel Preview Deployments
+  /^https:\/\/maximost-frontend-.*-vanryanwilders-projects\.vercel\.app$/,
+  // Local Development
+  'http://localhost:5173'
+];
+
 app.use('*', cors({
-  origin: [
-    // Production Domains
-    'https://maximost-frontend.vercel.app',
-    'https://maximost.com',
-    'https://www.maximost.com',
-    // Main Git Branch Production URL
-    'https://maximost-frontend-git-main-vanryanwilders-projects.vercel.app',
-    // Add the latest preview URL explicitly
-    'https://maximost-frontend-98lz0bn3g-vanryanwilders-projects.vercel.app',
-    // Regular Expression for all future Vercel Preview Deployments
-    /^https:\/\/maximost-frontend-.*-vanryanwilders-projects\.vercel\.app$/,
-    // Local Development
-    'http://localhost:5173'
-  ],
+  origin: (origin) => {
+    // Allow requests that match either a string or the RegExp in our list
+    if (allowedOrigins.some(allowedOrigin => 
+        (typeof allowedOrigin === 'string' && allowedOrigin === origin) ||
+        (allowedOrigin instanceof RegExp && allowedOrigin.test(origin))
+    )) {
+      return origin;
+    }
+    // For other origins, return the first allowed origin as a default
+    return 'https://maximost.com'; 
+  },
   allowHeaders: ['Authorization', 'Content-Type'],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true,
