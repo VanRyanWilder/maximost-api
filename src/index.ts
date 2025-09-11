@@ -6,7 +6,8 @@ import aiRoutes from './routes/aiRoutes.js'; // Import the new AI routes
 import type { AppEnv } from './hono.js';
 
 // --- Main Application ---
-const app = new Hono<{ Bindings: AppEnv }>();
+// CORRECTED: The Hono instance is now correctly typed with just AppEnv.
+const app = new Hono<AppEnv>();
 
 // Apply universal CORS middleware.
 app.use('*', cors({
@@ -19,7 +20,8 @@ app.use('*', cors({
 app.get('/', (c) => c.text('MaxiMost API is running!'));
 
 // --- API Router with Authentication ---
-const api = new Hono<{ Bindings: AppEnv }>();
+// CORRECTED: This router is also correctly typed with just AppEnv.
+const api = new Hono<AppEnv>();
 
 // Apply the JWT middleware to all routes attached to this `api` router.
 api.use('*', jwt({
@@ -34,4 +36,3 @@ api.route('/ai', aiRoutes); // Mount the AI routes
 app.route('/api', api);
 
 export default app;
-

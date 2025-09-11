@@ -1,34 +1,38 @@
 import { Hono } from 'hono';
+import type { AppEnv } from '../hono.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import type { AppEnv } from '../hono.js'; // Use our central type definitions
 
-const aiRoutes = new Hono<{ Bindings: AppEnv }>();
+const aiRoutes = new Hono<AppEnv>();
 
-// This entire router is protected by the JWT middleware in index.ts
+// Note: The auth middleware is now applied in the main index.ts file.
+// We can get the user ID from the JWT payload.
 
-aiRoutes.post('/generate-journal', async (c) => {
-  // 1. Get the authenticated user from the JWT payload in the context.
-  const payload = c.get('jwtPayload');
-  if (!payload) {
-    return c.json({ error: 'Unauthorized' }, 401);
-  }
+aiRoutes.get('/daily-directive', async (c) => {
+    const payload = c.get('jwtPayload');
+    const userId = payload.sub;
+    // In a real app, you'd fetch user preferences here
+    const preferredCoach = 'The Stoic'; // Hardcoded for now
 
-  // 2. Securely access the Gemini API key from the environment bindings.
-  const genAI = new GoogleGenerativeAI(c.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-  
-  const prompt = "Create a short, insightful journal prompt for today about overcoming a small challenge.";
-  
-  try {
-    const result = await model.generateContent(prompt);
-    const response = result.response;
-    const text = response.text();
-    return c.json({ prompt: text });
-  } catch (error) {
-    console.error("Error generating content with Gemini:", error);
-    return c.json({ error: "Failed to generate journal prompt." }, 500);
-  }
+    const genAI = new GoogleGenerativeAI(c.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+
+    const prompts = {
+        'The Stoic': `As a Stoic philosopher, provide a short, actionable daily directive for a user focused on building mental resilience. The directive should be a single sentence.`,
+        'The Operator': `As a special operations veteran, provide a short, direct, and intense daily mission for a user focused on discipline and execution. The mission should be a single sentence.`,
+        'The Nurturer': `As a compassionate and nurturing coach, provide a short, encouraging, and supportive daily affirmation for a user focused on self-compassion and effort. The affirmation should be a single sentence.`,
+    };
+
+    const prompt = prompts[preferredCoach] || prompts['The Stoic'];
+
+    try {
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+        return c.json({ directive: text });
+    } catch (error) {
+        console.error('Error generating daily directive:', error);
+        return c.json({ directive: 'Focus on your highest priority task.' }, { status: 500 });
+    }
 });
 
 export default aiRoutes;
-
