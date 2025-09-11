@@ -6,14 +6,12 @@ import aiRoutes from './routes/aiRoutes.js'; // Import the new AI routes
 import type { AppEnv } from './hono.js';
 
 // --- Main Application ---
-// CORRECTED: The Hono instance is now correctly typed with just AppEnv.
 const app = new Hono<AppEnv>();
 
-// Apply universal CORS middleware.
-// CORRECTED: We are now specifying the exact frontend origin to allow.
+// Apply universal CORS middleware. This will handle the actual requests (GET, POST, etc.)
 app.use('*', cors({
   origin: [
-    'https://maximost-frontend-git-fix-frontend-401-unauthorized-vanryanwilders-projects.vercel.app',
+    'https://maximost-frontend-hgvvk62wy-vanryanwilders-projects.vercel.app',
     'http://localhost:5173' // Also allow localhost for local development
   ],
   allowHeaders: ['Authorization', 'Content-Type'],
@@ -21,11 +19,17 @@ app.use('*', cors({
   credentials: true,
 }));
 
+// CORRECTED: Add an explicit handler for OPTIONS preflight requests.
+// This runs before any other middleware and responds immediately, which is what browsers expect.
+app.options('*', (c) => {
+  return c.text('', 204); // Respond with 204 No Content
+});
+
+
 // --- Public Routes ---
 app.get('/', (c) => c.text('MaxiMost API is running!'));
 
 // --- API Router with Authentication ---
-// CORRECTED: This router is also correctly typed with just AppEnv.
 const api = new Hono<AppEnv>();
 
 // Apply the JWT middleware to all routes attached to this `api` router.
