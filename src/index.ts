@@ -11,10 +11,12 @@ import type { AppEnv } from './hono.js';
 const app = new Hono<AppEnv>();
 
 // --- CORS Configuration ---
-app.use('/api/*', cors({
+app.use('*', cors({
   origin: [
     'http://localhost:5173', // Your local frontend dev environment
-    'https://maximost-frontend-3nq4duyqq-vanryanwilders-projects.vercel.app', // The specific Vercel preview URL from logs
+    'https://maximost-frontend-3nq4duyqq-vanryanwilders-projects.vercel.app',
+    'https://maximost-frontend-ein793z1h-vanryanwilders-projects.vercel.app', // New URL from latest logs
+    'https://maximost-frontend.vercel.app', // Placeholder for production URL
   ],
   allowHeaders: [
     'Authorization',
