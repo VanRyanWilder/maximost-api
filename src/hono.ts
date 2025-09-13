@@ -1,27 +1,24 @@
-import type { JwtVariables } from 'hono/jwt'
+import type { User, SupabaseClient } from '@supabase/supabase-js';
 
-// Define the environment variables Hono will have access to (c.env).
+// Defines the application-wide types for Hono's context.
+
+// Define the shape of your environment variables that Hono will have access to.
 export type Bindings = {
   SUPABASE_URL: string;
-  SUPABASE_SERVICE_ROLE_KEY: string;
-  SUPABASE_JWT_SECRET: string;
+  SUPABASE_ANON_KEY: string;
   GEMINI_API_KEY: string;
-}
+  // Add other environment variables here
+};
 
-// Define the shape of the JWT payload we expect from Supabase.
-// The `hono/jwt` middleware will make this available in the context.
-export type UserPayload = {
-  sub: string; // The user's UUID (subject)
-  email: string;
-  // Add any other fields from the token's payload
-}
+// Define the shape of the variables you'll set and get in the context (c.set/c.get).
+export type Variables = {
+  user: User;
+  supabase: SupabaseClient;
+  // Add other context variables here
+};
 
-// This defines the variables available in the context (c.get).
-export type Variables = JwtVariables
-
-// The final AppEnv combines Bindings and Variables for full type safety.
+// Combined type for Hono's environment, used when creating Hono instances.
 export type AppEnv = {
   Bindings: Bindings,
   Variables: Variables
-}
-
+};

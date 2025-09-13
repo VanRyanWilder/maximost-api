@@ -1,25 +1,16 @@
 import { Hono } from 'hono';
-import supabase from '../lib/supabase-client.js';
-import type { AppEnv } from '../hono.js';
+import type { AuthContext } from '../types.js';
 
-const habitRoutes = new Hono<{ Bindings: AppEnv }>();
-
-// NOTE: We no longer need to apply middleware here because it's
-// handled in index.ts before this router is even called.
+const habitRoutes = new Hono();
 
 // GET /api/habits - Fetch all habits for the logged-in user
-habitRoutes.get('/', async (c) => {
-  // The JWT payload is now available on the context.
-  const payload = c.get('jwtPayload');
-
-  if (!payload) {
-    return c.json({ error: 'Unauthorized' }, 401);
-  }
-
+habitRoutes.get('/', async (c: AuthContext) => {
+  const user = c.get('user');
+  const supabase = c.get('supabase');
   const { data, error } = await supabase
     .from('habits')
     .select('*')
-    .eq('user_id', payload.sub); // Use 'sub' for the user ID from the JWT payload
+    .eq('user_id', user.id);
 
   if (error) {
     console.error('Error fetching habits:', error.message);
@@ -29,22 +20,22 @@ habitRoutes.get('/', async (c) => {
   return c.json(data);
 });
 
-// POST /api/habits - Create a new habit
-habitRoutes.post('/', async (c) => {
-    const payload = c.get('jwtPayload');
-    if (!payload) {
-        return c.json({ error: 'Unauthorized' }, 401);
-    }
-
+// POST /api/habbits - Create a new habit for the logged-in user
+habitRoutes.post('/', async (c: AuthContext) => {
+    const user = c.get('user');
     const { name, description } = await c.req.json();
-    
     if (!name) {
         return c.json({ error: 'Habit name is required' }, 400);
     }
-    
+
+    const supabase = c.get('supabase');
     const { data, error } = await supabase
         .from('habits')
-        .insert({ name, description, user_id: payload.sub })
+        .insert({
+            name: name,
+            description: description,
+            user_id: user.id,
+        })
         .select()
         .single();
 
@@ -56,7 +47,47 @@ habitRoutes.post('/', async (c) => {
     return c.json(data, 201);
 });
 
-// You would continue this pattern for PUT and DELETE.
+// PUT /api/habits/:id - Update a habit
+habitRoutes.put('/:id', async (c: AuthContext) => {
+    const user = c.get('user');
+    const { id } = c.req.param();
+    const { name, description } = await c.req.json();
+
+    const supabase = c.get('supabase');
+    const { data, error } = await supabase
+        .from('habits')
+        .update({ name, description })
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error updating habit:', error.message);
+        return c.json({ error: 'Failed to update habit' }, 500);
+    }
+
+    return c.json(data);
+});
+
+// DELETE /api/habits/:id - Delete a habit
+habitRoutes.delete('/:id', async (c: AuthContext) => {
+    const user = c.get('user');
+    const { id } = c.req.param();
+
+    const supabase = c.get('supabase');
+    const { error } = await supabase
+        .from('habits')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+    if (error) {
+        console.error('Error deleting habit:', error.message);
+        return c.json({ error: 'Failed to delete habit' }, 500);
+    }
+
+    return c.body(null, 204);
+});
 
 export default habitRoutes;
-

@@ -1,61 +1,95 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { jwt } from 'hono/jwt';
+import { createClient } from '@supabase/supabase-js';
 import habitRoutes from './routes/habitRoutes.js';
-import aiRoutes from './routes/aiRoutes.js'; // Import the new AI routes
+import journalRoutes from './routes/journalRoutes.js';
+import reorderRoutes from './routes/reorderRoutes.js';
+import aiRoutes from './routes/aiRoutes.js';
 import type { AppEnv } from './hono.js';
 
-// --- Main Application ---
+// Initialize the Hono app
 const app = new Hono<AppEnv>();
 
 // --- CORS Configuration ---
-const allowedOrigins = [
-  // Production Domains
-  'https://maximost-frontend.vercel.app',
-  'https://maximost.com',
-  'https://www.maximost.com',
-  // Main Git Branch Production URL
-  'https://maximost-frontend-git-main-vanryanwilders-projects.vercel.app',
-  // Regular Expression for all Vercel Preview Deployments
-  /^https:\/\/maximost-frontend-.*-vanryanwilders-projects\.vercel\.app$/,
-  // Local Development
-  'http://localhost:5173'
-];
-
-app.use('*', cors({
-  origin: (origin) => {
-    // Allow requests that match either a string or the RegExp in our list
-    if (allowedOrigins.some(allowedOrigin => 
-        (typeof allowedOrigin === 'string' && allowedOrigin === origin) ||
-        (allowedOrigin instanceof RegExp && allowedOrigin.test(origin))
-    )) {
-      return origin;
-    }
-    // For other origins, return the first allowed origin as a default
-    return 'https://maximost.com'; 
-  },
-  allowHeaders: ['Authorization', 'Content-Type'],
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+app.use('/api/*', cors({
+  origin: [
+    'http://localhost:5173', // Your local frontend dev environment
+    'https://maximost-frontend-3nq4duyqq-vanryanwilders-projects.vercel.app', // The specific Vercel preview URL from logs
+  ],
+  allowHeaders: [
+    'Authorization',
+    'Content-Type',
+    'apikey',
+    'x-client-info',
+    'expires'
+  ],
+  allowMethods: ['POST', 'GET', 'OPTIONS', 'DELETE', 'PUT'],
   credentials: true,
+  maxAge: 86400,
 }));
 
-// --- Public Routes ---
-app.get('/', (c) => c.text('MaxiMost API is running!'));
+// --- Supabase Middleware for Auth ---
+app.use('/api/*', async (c, next) => {
+  try {
+    const authHeader = c.req.header('authorization');
+    if (!authHeader) {
+        return c.json({ error: 'Authorization header is missing' }, 401);
+    }
 
-// --- API Router with Authentication ---
-const api = new Hono<AppEnv>();
+    const supabase = createClient(c.env.SUPABASE_URL, c.env.SUPABASE_ANON_KEY, {
+        global: {
+            headers: { Authorization: authHeader }
+        }
+    });
 
-// Apply the JWT middleware to all routes attached to this `api` router.
-api.use('*', jwt({
-  secret: process.env.SUPABASE_JWT_SECRET!,
-}));
+    const { data: { user } } = await supabase.auth.getUser();
 
-// All routes attached here are now protected.
-api.route('/habits', habitRoutes);
-api.route('/ai', aiRoutes); // Mount the AI routes
+    if (!user) {
+        return c.json({ error: 'Unauthorized' }, 401);
+    }
 
-// Mount the protected API router under the '/api' path.
-app.route('/api', api);
+    c.set('user', user);
+    c.set('supabase', supabase);
+
+  } catch (error) {
+    console.error("Auth Middleware Error:", error);
+    return c.json({ error: 'Internal Server Error during authentication' }, 500);
+  }
+  await next();
+  return;
+});
+
+// --- API Routes ---
+
+// Health check route
+app.get('/', (c) => {
+  return c.text('MaxiMost API is running!');
+});
+
+// Mount the route handlers
+app.route('/api/habits', habitRoutes);
+app.route('/api/journal', journalRoutes);
+app.route('/api/reorder', reorderRoutes);
+app.route('/api/ai', aiRoutes);
+
+// Protected route to get the current user's data
+app.get('/api/users/me', (c) => {
+  const user = c.get('user');
+  if (user) {
+    return c.json(user);
+  }
+  return c.json({ error: 'User not found' }, 404);
+});
+
+
+// --- Error Handling & Not Found ---
+app.notFound((c) => {
+    return c.json({ error: 'Not Found' }, 404);
+});
+
+app.onError((err, c) => {
+    console.error(`${err}`);
+    return c.json({ error: 'Internal Server Error' }, 500);
+});
 
 export default app;
-
