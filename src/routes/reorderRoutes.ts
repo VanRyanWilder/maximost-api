@@ -33,9 +33,10 @@ reorderRoutes.post('/habits/reorder', async (c: AuthContext) => {
         }
 
         return c.json({ success: true, message: 'Habit order updated successfully' });
-    } catch (error: any) {
+    } catch (error) {
         // This will catch network errors or other unexpected issues with Promise.all
-        console.error('Unexpected error during habit reorder:', error.message);
+        const message = error instanceof Error ? error.message : "Unknown error";
+        console.error('Unexpected error during habit reorder:', message);
         return c.json({ error: 'An unexpected error occurred while reordering habits.' }, 500);
     }
 });

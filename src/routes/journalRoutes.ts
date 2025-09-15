@@ -46,7 +46,7 @@ journalRoutes.post('/', async (c: AuthContext) => {
         return c.json({ error: 'Failed to create journal entry' }, 500);
     }
 
-    return c.json(data, 201);
+    return c.json(data, { status: 201 });
 });
 
 // PUT (update) a journal entry

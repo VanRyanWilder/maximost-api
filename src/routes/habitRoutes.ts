@@ -44,7 +44,7 @@ habitRoutes.post('/', async (c: AuthContext) => {
         return c.json({ error: 'Failed to create habit' }, 500);
     }
 
-    return c.json(data, 201);
+    return c.json(data, { status: 201 });
 });
 
 // PUT /api/habits/:id - Update a habit
