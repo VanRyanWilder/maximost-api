@@ -6,6 +6,7 @@ import journalRoutes from './routes/journalRoutes.js';
 import reorderRoutes from './routes/reorderRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import type { AppEnv } from './hono.js';
+import { config } from './config.js';
 
 // Initialize the Hono app
 const app = new Hono<AppEnv>();
@@ -13,10 +14,10 @@ const app = new Hono<AppEnv>();
 // --- CORS Configuration ---
 app.use('*', cors({
   origin: [
-    'http://localhost:5173', // Your local frontend dev environment
+    'http://localhost:5173',
     'https://maximost-frontend-3nq4duyqq-vanryanwilders-projects.vercel.app',
-    'https://maximost-frontend-ein793z1h-vanryanwilders-projects.vercel.app', // New URL from latest logs
-    'https://maximost-frontend.vercel.app', // Placeholder for production URL
+    'https://maximost-frontend-ein793z1h-vanryanwilders-projects.vercel.app',
+    'https://maximost-frontend.vercel.app',
   ],
   allowHeaders: [
     'Authorization',
@@ -38,7 +39,7 @@ app.use('/api/*', async (c, next) => {
         return c.json({ error: 'Authorization header is missing' }, 401);
     }
 
-    const supabase = createClient(c.env.SUPABASE_URL, c.env.SUPABASE_ANON_KEY, {
+    const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY, {
         global: {
             headers: { Authorization: authHeader }
         }
@@ -53,8 +54,9 @@ app.use('/api/*', async (c, next) => {
     c.set('user', user);
     c.set('supabase', supabase);
 
-  } catch (error) {
-    console.error("Auth Middleware Error:", error);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    console.error("Auth Middleware Error:", message);
     return c.json({ error: 'Internal Server Error during authentication' }, 500);
   }
   await next();
@@ -89,9 +91,22 @@ app.notFound((c) => {
     return c.json({ error: 'Not Found' }, 404);
 });
 
-app.onError((err, c) => {
-    console.error(`${err}`);
-    return c.json({ error: 'Internal Server Error' }, 500);
+app.onError((err: Error, c) => {
+    console.error(err.stack);
+    return c.json({
+        error: 'Internal Server Error',
+        message: err.message
+    }, 500);
 });
+
+import { serve } from '@hono/node-server';
+
+serve({
+  fetch: app.fetch,
+  port: parseInt(config.PORT),
+  hostname: '0.0.0.0'
+}, (info) => {
+    console.log(`Server is running at http://${info.address}:${info.port}`)
+})
 
 export default app;

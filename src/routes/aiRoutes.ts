@@ -8,12 +8,13 @@ const aiRoutes = new Hono<AppEnv>();
 // We can get the user ID from the JWT payload.
 
 aiRoutes.get('/daily-directive', async (c) => {
-    const payload = c.get('jwtPayload');
-    const userId = payload.sub;
+    const user = c.get('user');
+    const userId = user.id;
     // In a real app, you'd fetch user preferences here
     const preferredCoach = 'The Stoic'; // Hardcoded for now
 
-    const genAI = new GoogleGenerativeAI(c.env.GEMINI_API_KEY);
+    const { config } = await import('../config.js');
+    const genAI = new GoogleGenerativeAI(config.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
 
     const prompts = {
