@@ -15,6 +15,7 @@ const app = new Hono<AppEnv>();
 app.use('*', cors({
   origin: [
     'http://localhost:5173',
+    'https://maximost.com',
     'https://maximost-frontend-3nq4duyqq-vanryanwilders-projects.vercel.app',
     'https://maximost-frontend-ein793z1h-vanryanwilders-projects.vercel.app',
     'https://maximost-frontend.vercel.app',
@@ -39,15 +40,17 @@ app.use('/api/*', async (c, next) => {
         return c.json({ error: 'Authorization header is missing' }, 401);
     }
 
-    const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY, {
-        global: {
-            headers: { Authorization: authHeader }
-        }
-    });
+    // Initialize Supabase with Service Role Key
+    const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_SERVICE_ROLE_KEY);
 
-    const { data: { user } } = await supabase.auth.getUser();
+    // Validate the token passed in the Authorization header
+    // The token is "Bearer <token>", so we can just pass it directly if we extract it,
+    // or set it in the client options. However, getUser(token) expects just the JWT string.
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error } = await supabase.auth.getUser(token);
 
-    if (!user) {
+    if (error || !user) {
+        console.error("Auth error:", error);
         return c.json({ error: 'Unauthorized' }, 401);
     }
 
