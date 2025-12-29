@@ -49,7 +49,7 @@ aiRoutes.post('/chat', async (c) => {
             return c.json({ error: "Invalid request body. 'contents' is required." }, 400);
         }
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
         // Pass the contents directly to the model
         const result = await model.generateContent({
