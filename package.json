@@ -7,7 +7,7 @@
     "start": "node dist/index.js",
     "test": "node --experimental-vm-modules node_modules/.bin/jest",
     "build": "tsc",
-    "dev": "ts-node src/index.ts"
+    "dev": "tsx src/index.ts"
   },
   "keywords": [],
   "author": "",
