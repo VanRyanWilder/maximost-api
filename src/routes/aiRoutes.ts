@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
+import { streamText } from 'hono/streaming';
 import type { AppEnv } from '../hono.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { config } from '../config.js';
+import { fetchUserContext } from '../lib/orchestrator.js';
 
 const aiRoutes = new Hono<AppEnv>();
 
@@ -39,42 +41,46 @@ aiRoutes.get('/daily-directive', async (c) => {
 });
 
 aiRoutes.post('/chat', async (c) => {
+    const user = c.get('user');
+    const supabase = c.get('supabase');
+
     try {
         const body = await c.req.json();
+        const { message, persona, client_tz } = body;
 
-        // Expecting body to match Google Gemini content structure
-        // { "contents": [{ "role": "user", "parts": [{ "text": "..." }] }] }
-
-        if (!body.contents) {
-            return c.json({ error: "Invalid request body. 'contents' is required." }, 400);
+        if (!message) {
+             return c.json({ error: "Invalid request body. 'message' is required." }, 400);
         }
+
+        // 1. Fetch Context (Orchestrator)
+        const context = await fetchUserContext(user.id, supabase);
+
+        // 2. Construct Prompt
+        const systemInstruction = `You are the MaxiMost AI Coach.
+        Current Persona: ${persona || 'The Stoic'}.
+        User Timezone: ${client_tz || 'UTC'}.
+
+        Use the following context to answer the user's message.
+        CONTEXT:
+        ${context}
+
+        USER MESSAGE:
+        ${message}`;
 
         const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-        // Pass the contents directly to the model
-        const result = await model.generateContent({
-            contents: body.contents
-        });
+        // 3. Stream Response
+        const result = await model.generateContentStream(systemInstruction);
 
-        const response = await result.response;
-
-        // Return the full response object logic or just the candidate
-        // The user asked to "Return the JSON result to the frontend"
-        // The SDK's response object structure is complex.
-        // We can construct a response similar to the REST API or just return what we have.
-
-        // result.response is a GenerativeContentResponse
-        // We'll return a simplified version or the full structure depending on what we can get.
-        // There isn't a "toJSON" on the result object directly that matches the REST API exactly 1:1 always,
-        // but let's try to return the candidates.
-
-        return c.json({
-            candidates: response.candidates,
-            promptFeedback: response.promptFeedback
+        return streamText(c, async (stream) => {
+            for await (const chunk of result.stream) {
+                const chunkText = chunk.text();
+                await stream.write(chunkText);
+            }
         });
 
     } catch (error: any) {
-        console.error('Error in /chat proxy:', error);
+        console.error('Error in /chat orchestrator:', error);
         return c.json({
             error: 'Error processing AI request',
             details: error.message

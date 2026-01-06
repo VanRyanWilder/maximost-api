@@ -79,6 +79,22 @@ app.route('/api/journal', journalRoutes);
 app.route('/api/reorder', reorderRoutes);
 app.route('/api/ai', aiRoutes);
 
+import { fetchUserContext } from './lib/orchestrator.js';
+
+app.get('/api/test-context', async (c) => {
+    const user = c.get('user');
+    const supabase = c.get('supabase');
+    const start = Date.now();
+    const context = await fetchUserContext(user.id, supabase);
+    const duration = Date.now() - start;
+
+    return c.json({
+        duration_ms: duration,
+        context_length: context.length,
+        preview: context.substring(0, 500)
+    });
+});
+
 // Protected route to get the current user's data
 app.get('/api/users/me', (c) => {
   const user = c.get('user');
