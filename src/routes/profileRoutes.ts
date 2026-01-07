@@ -33,6 +33,29 @@ profileRoutes.put('/neural-config', async (c) => {
     return c.json({ message: 'Neural config updated', config: data.neural_config });
 });
 
+// GET /neural-config - Fetch user's custom context
+profileRoutes.get('/neural-config', async (c) => {
+    const user = c.get('user');
+    const supabase = c.get('supabase');
+
+    const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('neural_config')
+        .eq('id', user.id)
+        .single();
+
+    if (error) {
+        // Return default on error to keep frontend flowing
+        return c.json({ context: "Operator has not yet defined custom context." });
+    }
+
+    const context = profile?.neural_config?.context;
+
+    return c.json({
+        context: context || "Operator has not yet defined custom context."
+    });
+});
+
 // Generate Share Code (Family Sync)
 profileRoutes.post('/share-code', async (c) => {
     const user = c.get('user');
