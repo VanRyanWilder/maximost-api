@@ -9,6 +9,7 @@ import webhookRoutes from './routes/webhookRoutes.js';
 import protocolRoutes from './routes/protocolRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import logRoutes from './routes/logRoutes.js';
 import { calculateConsistencyIndex } from './lib/telemetry.js';
 import type { AppEnv } from './hono.js';
 import { config } from './config.js';
@@ -93,6 +94,7 @@ app.route('/api/webhooks', webhookRoutes);
 app.route('/api/protocols', protocolRoutes);
 app.route('/api/profiles', profileRoutes);
 app.route('/api/admin', adminRoutes);
+app.route('/api/habit_logs', logRoutes);
 
 // Lore Archive Endpoint
 app.get('/api/archive/lore', async (c) => {
