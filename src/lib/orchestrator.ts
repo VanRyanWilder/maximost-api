@@ -153,5 +153,19 @@ export async function fetchUserContext(userId: string, supabase: SupabaseClient,
     // 5. Dynamic Lore Injection (No caching for this part as it depends on message)
     const loreMatches = await fetchLoreMatches(supabase, userMessage);
 
-    return baseContext + (loreMatches ? `\n\n${loreMatches}` : "");
+    // 6. Bio-Rig Readiness Injection
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('bio_rig_readiness')
+        .eq('id', userId)
+        .single();
+
+    let readinessWarning = "";
+    if (profile?.bio_rig_readiness !== undefined && profile.bio_rig_readiness !== null) {
+        if (profile.bio_rig_readiness < 50) {
+            readinessWarning = `\n\nSYSTEM WARNING: Operator Readiness is LOW (${profile.bio_rig_readiness}%). Prioritize recovery protocols.`;
+        }
+    }
+
+    return baseContext + (loreMatches ? `\n\n${loreMatches}` : "") + readinessWarning;
 }

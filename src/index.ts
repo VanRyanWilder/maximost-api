@@ -10,6 +10,7 @@ import protocolRoutes from './routes/protocolRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import logRoutes from './routes/logRoutes.js';
+import terraRoutes from './routes/terraRoutes.js';
 import { calculateConsistencyIndex } from './lib/telemetry.js';
 import { calculateDrift } from './lib/shadowAudit.js';
 import type { AppEnv } from './hono.js';
@@ -96,6 +97,7 @@ app.route('/api/protocols', protocolRoutes);
 app.route('/api/profiles', profileRoutes);
 app.route('/api/admin', adminRoutes);
 app.route('/api/habit_logs', logRoutes);
+app.route('/api/webhooks/terra', terraRoutes);
 
 // Lore Archive Endpoint
 app.get('/api/archive/lore', async (c) => {
