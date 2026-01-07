@@ -7,6 +7,7 @@ import reorderRoutes from './routes/reorderRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import webhookRoutes from './routes/webhookRoutes.js';
 import protocolRoutes from './routes/protocolRoutes.js';
+import profileRoutes from './routes/profileRoutes.js';
 import { calculateConsistencyIndex } from './lib/telemetry.js';
 import type { AppEnv } from './hono.js';
 import { config } from './config.js';
@@ -37,6 +38,12 @@ app.use('*', cors({
 
 // --- Supabase Middleware for Auth ---
 app.use('/api/*', async (c, next) => {
+  // Exclude webhooks from Auth Guard (Stripe sends its own signature)
+  if (c.req.path.startsWith('/api/webhooks')) {
+      await next();
+      return;
+  }
+
   try {
     const authHeader = c.req.header('authorization');
     if (!authHeader) {
@@ -83,6 +90,7 @@ app.route('/api/reorder', reorderRoutes);
 app.route('/api/ai', aiRoutes);
 app.route('/api/webhooks', webhookRoutes);
 app.route('/api/protocols', protocolRoutes);
+app.route('/api/profiles', profileRoutes);
 
 // Telemetry Endpoint
 app.get('/api/telemetry/uptime', async (c) => {

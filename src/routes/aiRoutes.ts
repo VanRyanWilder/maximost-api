@@ -4,6 +4,8 @@ import type { AppEnv } from '../hono.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { config } from '../config.js';
 import { fetchUserContext } from '../lib/orchestrator.js';
+import { NEURAL_CORE_INSTRUCTIONS } from '../lib/neuralCore.js';
+import { calculateConsistencyIndex } from '../lib/telemetry.js';
 
 const aiRoutes = new Hono<AppEnv>();
 
@@ -17,8 +19,8 @@ aiRoutes.get('/daily-directive', async (c) => {
     // In a real app, you'd fetch user preferences here
     const preferredCoach = 'The Stoic'; // Hardcoded for now
 
-    // Update to gemini-1.5-flash as requested
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    // Update to gemini-2.0-flash as requested
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     const prompts: Record<string, string> = {
         'The Stoic': `As a Stoic philosopher, provide a short, actionable daily directive for a user focused on building mental resilience. The directive should be a single sentence.`,
@@ -55,21 +57,40 @@ aiRoutes.post('/chat', async (c) => {
         // 1. Fetch Context (Orchestrator)
         const context = await fetchUserContext(user.id, supabase);
 
-        // 2. Construct Prompt
-        const systemInstruction = `You are the MaxiMost AI Coach.
-        Current Persona: ${persona || 'The Stoic'}.
-        User Timezone: ${client_tz || 'UTC'}.
+        // 2. Fetch Additional Neural Data
+        // - Consistency Index (7 days)
+        const consistencyIndex = await calculateConsistencyIndex(user.id, 7, supabase);
 
-        Use the following context to answer the user's message.
-        CONTEXT:
+        // - User's Custom Neural Config
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('neural_config')
+            .eq('id', user.id)
+            .single();
+
+        const customContext = profile?.neural_config?.context || '';
+
+        // 3. Construct Prompt with Neural Core + Data
+        const systemInstruction = `${NEURAL_CORE_INSTRUCTIONS}
+
+        CURRENT STATUS:
+        Persona: ${persona || 'The Watchman'}
+        User Timezone: ${client_tz || 'UTC'}
+        Consistency Index (7-Day): ${consistencyIndex}%
+
+        USER CUSTOM CONTEXT:
+        "${customContext}"
+
+        SYSTEM CONTEXT (LORE + LOGS):
         ${context}
 
         USER MESSAGE:
         ${message}`;
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        // Upgrade to Gemini 2.0 Flash
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
-        // 3. Stream Response
+        // 4. Stream Response
         const result = await model.generateContentStream(systemInstruction);
 
         return streamText(c, async (stream) => {

@@ -23,7 +23,7 @@ webhookRoutes.post('/stripe', async (c) => {
     try {
         // Hono's text() method consumes the stream, but that's what we want for signature verification
         // We use clone() if we needed it later, but here we just need the raw text
-        const body = await c.req.text();
+        const body = await c.req.raw.clone().text();
         event = stripe.webhooks.constructEvent(body, signature, config.STRIPE_WEBHOOK_SECRET);
     } catch (err: any) {
         console.error(`⚠️  Webhook signature verification failed.`, err.message);

@@ -24,7 +24,8 @@ export async function calculateConsistencyIndex(userId: string, days: number, su
     // For simplicity/MVP, we take currently active habits.
     const { data: habits, error: habitsError } = await supabase
         .from('habits')
-        .select('id, target_value, type');
+        .select('id, target_value, type')
+        .eq('user_id', userId);
 
     if (habitsError || !habits) {
         console.error('Error fetching habits for telemetry:', habitsError);
