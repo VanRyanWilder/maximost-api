@@ -8,6 +8,7 @@ import aiRoutes from './routes/aiRoutes.js';
 import webhookRoutes from './routes/webhookRoutes.js';
 import protocolRoutes from './routes/protocolRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
 import { calculateConsistencyIndex } from './lib/telemetry.js';
 import type { AppEnv } from './hono.js';
 import { config } from './config.js';
@@ -91,6 +92,19 @@ app.route('/api/ai', aiRoutes);
 app.route('/api/webhooks', webhookRoutes);
 app.route('/api/protocols', protocolRoutes);
 app.route('/api/profiles', profileRoutes);
+app.route('/api/admin', adminRoutes);
+
+// Lore Archive Endpoint
+app.get('/api/archive/lore', async (c) => {
+    const supabase = c.get('supabase');
+    const { data, error } = await supabase
+        .from('library_habits')
+        .select('name, how_instruction, why_instruction')
+        .limit(100); // Reasonable limit for archive view
+
+    if (error) return c.json({ error: 'Failed to fetch lore' }, 500);
+    return c.json(data);
+});
 
 // Telemetry Endpoint
 app.get('/api/telemetry/uptime', async (c) => {
