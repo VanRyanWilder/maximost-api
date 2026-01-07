@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { calculateConsistencyIndex } from '../lib/telemetry.js';
+import { runCombatSim } from '../lib/simulation.js';
 import type { AppEnv } from '../hono.js';
 
 const adminRoutes = new Hono<AppEnv>();
@@ -48,6 +49,22 @@ adminRoutes.get('/users', async (c) => {
     }));
 
     return c.json({ users: enrichedUsers });
+});
+
+// POST /api/admin/simulate - War Games Engine
+adminRoutes.post('/simulate', async (c) => {
+    const supabase = c.get('supabase');
+    const { userId } = await c.req.json();
+
+    if (!userId) return c.json({ error: 'User ID is required' }, 400);
+
+    try {
+        const result = await runCombatSim(userId, supabase);
+        return c.json(result);
+    } catch (error: any) {
+        console.error('Simulation Error:', error);
+        return c.json({ error: error.message || 'Simulation Failed' }, 500);
+    }
 });
 
 export default adminRoutes;

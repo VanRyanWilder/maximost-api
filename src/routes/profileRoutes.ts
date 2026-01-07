@@ -61,6 +61,23 @@ profileRoutes.post('/share-code', async (c) => {
     const user = c.get('user');
     const supabase = c.get('supabase');
 
+    // 1. Bloodline Gate: Check Sovereignty Tier
+    const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('membership_tier')
+        .eq('id', user.id)
+        .single();
+
+    if (profileError || !profile) {
+        return c.json({ error: 'Failed to fetch user profile' }, 500);
+    }
+
+    // Only 'sovereign' and 'architect' can generate codes
+    const allowedTiers = ['sovereign', 'architect', 'admin']; // Admin allowed for testing
+    if (!allowedTiers.includes(profile.membership_tier)) {
+        return c.json({ error: "Sovereignty Tier required to initialize the Bloodline Protocol." }, 403);
+    }
+
     // Generate a simple 6-char code
     const shareCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
