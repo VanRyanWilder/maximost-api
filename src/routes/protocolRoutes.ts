@@ -30,42 +30,57 @@ protocolRoutes.post('/deploy', async (c) => {
     }
 
     // 2. Fetch Protocol Definition
+    // We now support text IDs (slugs) like 'stack_atlas' or 'stack_goggins'
+    // Checking both 'id' (legacy int) or 'stack_id' (new text) just in case, or just assumes protocolId is the ID passed.
+    // The seed script puts IDs like 'stack_atlas' into 'stack_id' column.
+    // But frontend might pass it as 'id'. Let's check 'stack_id' first.
+
     const { data: protocol, error: protoError } = await supabase
         .from('library_protocols')
         .select('*')
-        .eq('id', protocolId)
+        .eq('stack_id', protocolId)
         .single();
 
     if (protoError || !protocol) {
         return c.json({ error: 'Protocol not found' }, 404);
     }
 
-    const habitIds = protocol.habit_ids; // Array of UUIDs
+    const habitSlugs: string[] = protocol.habit_slugs || [];
+    const overrides = protocol.overrides || [];
 
-    if (!habitIds || habitIds.length === 0) {
+    if (!habitSlugs || habitSlugs.length === 0) {
         return c.json({ message: 'Protocol has no habits to deploy.' });
     }
 
-    // 3. Fetch Master Habits
+    // 3. Fetch Master Habits by Slug
     const { data: libraryHabits, error: libError } = await supabase
         .from('library_habits')
         .select('*')
-        .in('id', habitIds);
+        .in('slug', habitSlugs);
 
     if (libError || !libraryHabits) {
         return c.json({ error: 'Failed to fetch protocol habits' }, 500);
     }
 
-    // 4. Batch Insert into User's Habits
-    const newHabits = libraryHabits.map((h: any) => ({
-        user_id: user.id,
-        name: h.name,
-        description: h.description, // Link back to protocol name? Or just keep desc.
-        unit: h.unit,
-        target_value: h.target_value,
-        type: h.type,
-        // We might want to store metadata like 'source_protocol_id' if schema allowed
-    }));
+    // 4. Batch Insert with Atomic Mutator Logic
+    const newHabits = libraryHabits.map((h: any) => {
+        // Find Override
+        const override = overrides.find((o: any) => o.slug === h.slug);
+
+        // Merge Logic: Override takes precedence
+        return {
+            user_id: user.id,
+            name: override?.title || h.title || h.name, // 'title' in JSON, 'name' in DB schema usually. JSON has 'title'.
+            description: override?.description || h.description,
+            unit: override?.unit || h.unit,
+            target_value: override?.target_value || h.target_value,
+            type: override?.type || h.type,
+            theme: protocol.theme_override || h.theme, // Apply Protocol Theme Override
+            how_instruction: override?.how_instruction || h.how_instruction,
+            why_instruction: override?.why_instruction || h.why_instruction,
+            slug: h.slug // Traceability
+        };
+    });
 
     const { error: insertError } = await supabase
         .from('habits')
