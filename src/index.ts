@@ -5,6 +5,9 @@ import habitRoutes from './routes/habitRoutes.js';
 import journalRoutes from './routes/journalRoutes.js';
 import reorderRoutes from './routes/reorderRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
+import webhookRoutes from './routes/webhookRoutes.js';
+import protocolRoutes from './routes/protocolRoutes.js';
+import { calculateConsistencyIndex } from './lib/telemetry.js';
 import type { AppEnv } from './hono.js';
 import { config } from './config.js';
 
@@ -78,6 +81,33 @@ app.route('/api/habits', habitRoutes);
 app.route('/api/journal', journalRoutes);
 app.route('/api/reorder', reorderRoutes);
 app.route('/api/ai', aiRoutes);
+app.route('/api/webhooks', webhookRoutes);
+app.route('/api/protocols', protocolRoutes);
+
+// Telemetry Endpoint
+app.get('/api/telemetry/uptime', async (c) => {
+    const user = c.get('user');
+    const supabase = c.get('supabase');
+
+    try {
+        const [score7, score30, score90] = await Promise.all([
+            calculateConsistencyIndex(user.id, 7, supabase),
+            calculateConsistencyIndex(user.id, 30, supabase),
+            calculateConsistencyIndex(user.id, 90, supabase)
+        ]);
+
+        return c.json({
+            consistency: {
+                day7: score7,
+                day30: score30,
+                day90: score90
+            }
+        });
+    } catch (error: any) {
+        console.error('Telemetry error:', error);
+        return c.json({ error: 'Failed to calculate telemetry' }, 500);
+    }
+});
 
 import { fetchUserContext } from './lib/orchestrator.js';
 
