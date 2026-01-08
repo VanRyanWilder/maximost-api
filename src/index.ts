@@ -77,9 +77,16 @@ app.use('/api/*', async (c, next) => {
         .single();
 
     // Merge profile data into user object or context
+    // Admin Override: Check environment variable fallback
+    const isHardcodedAdmin = user.email && user.email === config.ADMIN_EMAIL;
+    const finalRole = isHardcodedAdmin ? 'admin' : (profile?.role || 'user');
+
     const enrichedUser: EnrichedUser = {
         ...user,
-        profile: profile || { role: 'user', membership_tier: 'initiate' }
+        profile: {
+            role: finalRole,
+            membership_tier: profile?.membership_tier || 'initiate'
+        }
     };
 
     c.set('user', enrichedUser);

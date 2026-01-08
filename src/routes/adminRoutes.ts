@@ -1,14 +1,22 @@
 import { Hono } from 'hono';
 import { calculateConsistencyIndex } from '../lib/telemetry.js';
 import { runCombatSim } from '../lib/simulation.js';
-import type { AppEnv } from '../hono.js';
+import type { AppEnv, EnrichedUser } from '../hono.js';
+import { config } from '../config.js';
 
 const adminRoutes = new Hono<AppEnv>();
 
 // Admin Auth Guard Middleware
 adminRoutes.use('*', async (c, next) => {
-    const user = c.get('user');
+    const user = c.get('user') as EnrichedUser; // Use enriched user context
     const supabase = c.get('supabase');
+
+    // Admin Override Logic: Check env var first
+    const isHardcodedAdmin = user.email && user.email === config.ADMIN_EMAIL;
+    if (isHardcodedAdmin) {
+        await next();
+        return;
+    }
 
     const { data: profile } = await supabase
         .from('profiles')
@@ -20,7 +28,7 @@ adminRoutes.use('*', async (c, next) => {
         return c.json({ error: 'Access Denied: Admin Sovereignty Required' }, 403);
     }
     await next();
-    return; // Explicit return to satisfy TS7030
+    return;
 });
 
 adminRoutes.get('/users', async (c) => {
