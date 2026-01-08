@@ -30,6 +30,7 @@ protocolRoutes.post('/deploy', async (c) => {
     }
 
     // 2. Fetch Protocol Definition
+<<<<<<< Updated upstream
     // We now support text IDs (slugs) like 'stack_atlas' or 'stack_goggins'
     // Checking both 'id' (legacy int) or 'stack_id' (new text) just in case, or just assumes protocolId is the ID passed.
     // The seed script puts IDs like 'stack_atlas' into 'stack_id' column.
@@ -39,12 +40,19 @@ protocolRoutes.post('/deploy', async (c) => {
         .from('library_protocols')
         .select('*')
         .eq('stack_id', protocolId)
+=======
+    const { data: protocol, error: protoError } = await supabase
+        .from('library_protocols')
+        .select('*')
+        .eq('id', protocolId)
+>>>>>>> Stashed changes
         .single();
 
     if (protoError || !protocol) {
         return c.json({ error: 'Protocol not found' }, 404);
     }
 
+<<<<<<< Updated upstream
     const habitSlugs: string[] = protocol.habit_slugs || [];
     const overrides = protocol.overrides || [];
 
@@ -57,11 +65,25 @@ protocolRoutes.post('/deploy', async (c) => {
         .from('library_habits')
         .select('*')
         .in('slug', habitSlugs);
+=======
+    const habitIds = protocol.habit_ids; // Array of UUIDs
+
+    if (!habitIds || habitIds.length === 0) {
+        return c.json({ message: 'Protocol has no habits to deploy.' });
+    }
+
+    // 3. Fetch Master Habits
+    const { data: libraryHabits, error: libError } = await supabase
+        .from('library_habits')
+        .select('*')
+        .in('id', habitIds);
+>>>>>>> Stashed changes
 
     if (libError || !libraryHabits) {
         return c.json({ error: 'Failed to fetch protocol habits' }, 500);
     }
 
+<<<<<<< Updated upstream
     // 4. Batch Insert with Atomic Mutator Logic
     const newHabits = libraryHabits.map((h: any) => {
         // Find Override
@@ -81,6 +103,18 @@ protocolRoutes.post('/deploy', async (c) => {
             slug: h.slug // Traceability
         };
     });
+=======
+    // 4. Batch Insert into User's Habits
+    const newHabits = libraryHabits.map((h: any) => ({
+        user_id: user.id,
+        name: h.name,
+        description: h.description, // Link back to protocol name? Or just keep desc.
+        unit: h.unit,
+        target_value: h.target_value,
+        type: h.type,
+        // We might want to store metadata like 'source_protocol_id' if schema allowed
+    }));
+>>>>>>> Stashed changes
 
     const { error: insertError } = await supabase
         .from('habits')

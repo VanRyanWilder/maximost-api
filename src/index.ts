@@ -10,11 +10,16 @@ import protocolRoutes from './routes/protocolRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import logRoutes from './routes/logRoutes.js';
+<<<<<<< Updated upstream
 import terraRoutes from './routes/terraRoutes.js';
 import supportRoutes from './routes/supportRoutes.js';
 import { calculateConsistencyIndex } from './lib/telemetry.js';
 import { calculateDrift } from './lib/shadowAudit.js';
 import type { AppEnv, EnrichedUser } from './hono.js';
+=======
+import { calculateConsistencyIndex } from './lib/telemetry.js';
+import type { AppEnv } from './hono.js';
+>>>>>>> Stashed changes
 import { config } from './config.js';
 
 // Initialize the Hono app
@@ -111,8 +116,11 @@ app.route('/api/protocols', protocolRoutes);
 app.route('/api/profiles', profileRoutes);
 app.route('/api/admin', adminRoutes);
 app.route('/api/habit_logs', logRoutes);
+<<<<<<< Updated upstream
 app.route('/api/webhooks/terra', terraRoutes);
 app.route('/api/support', supportRoutes);
+=======
+>>>>>>> Stashed changes
 
 // Lore Archive Endpoint
 app.get('/api/archive/lore', async (c) => {
@@ -126,12 +134,17 @@ app.get('/api/archive/lore', async (c) => {
     return c.json(data);
 });
 
+<<<<<<< Updated upstream
 // Telemetry Endpoint: Uptime (Current Status)
+=======
+// Telemetry Endpoint
+>>>>>>> Stashed changes
 app.get('/api/telemetry/uptime', async (c) => {
     const user = c.get('user');
     const supabase = c.get('supabase');
 
     try {
+<<<<<<< Updated upstream
         const [score7, score30, score90, driftReport] = await Promise.all([
             calculateConsistencyIndex(user.id, 7, supabase),
             calculateConsistencyIndex(user.id, 30, supabase),
@@ -179,10 +192,16 @@ app.get('/api/telemetry/averages', async (c) => {
         const [avg30, avg60, avg90] = await Promise.all([
             calculateConsistencyIndex(user.id, 30, supabase),
             calculateConsistencyIndex(user.id, 60, supabase),
+=======
+        const [score7, score30, score90] = await Promise.all([
+            calculateConsistencyIndex(user.id, 7, supabase),
+            calculateConsistencyIndex(user.id, 30, supabase),
+>>>>>>> Stashed changes
             calculateConsistencyIndex(user.id, 90, supabase)
         ]);
 
         return c.json({
+<<<<<<< Updated upstream
             averages: {
                 day30: avg30,
                 day60: avg60,
@@ -192,6 +211,17 @@ app.get('/api/telemetry/averages', async (c) => {
     } catch (error: any) {
         console.error('Telemetry Averages Error:', error);
         return c.json({ error: 'Failed to calculate averages' }, 500);
+=======
+            consistency: {
+                day7: score7,
+                day30: score30,
+                day90: score90
+            }
+        });
+    } catch (error: any) {
+        console.error('Telemetry error:', error);
+        return c.json({ error: 'Failed to calculate telemetry' }, 500);
+>>>>>>> Stashed changes
     }
 });
 
