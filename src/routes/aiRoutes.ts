@@ -1,7 +1,11 @@
 import { Hono } from 'hono';
+import { streamText } from 'hono/streaming';
 import type { AppEnv } from '../hono.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { config } from '../config.js';
+import { fetchUserContext } from '../lib/orchestrator.js';
+import { NEURAL_CORE_INSTRUCTIONS } from '../lib/neuralCore.js';
+import { calculateConsistencyIndex } from '../lib/telemetry.js';
 
 const aiRoutes = new Hono<AppEnv>();
 
@@ -15,8 +19,8 @@ aiRoutes.get('/daily-directive', async (c) => {
     // In a real app, you'd fetch user preferences here
     const preferredCoach = 'The Stoic'; // Hardcoded for now
 
-    // Update to gemini-1.5-flash as requested
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    // Update to gemini-2.0-flash as requested
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     const prompts: Record<string, string> = {
         'The Stoic': `As a Stoic philosopher, provide a short, actionable daily directive for a user focused on building mental resilience. The directive should be a single sentence.`,
@@ -39,42 +43,65 @@ aiRoutes.get('/daily-directive', async (c) => {
 });
 
 aiRoutes.post('/chat', async (c) => {
+    const user = c.get('user');
+    const supabase = c.get('supabase');
+
     try {
         const body = await c.req.json();
+        const { message, persona, client_tz } = body;
 
-        // Expecting body to match Google Gemini content structure
-        // { "contents": [{ "role": "user", "parts": [{ "text": "..." }] }] }
-
-        if (!body.contents) {
-            return c.json({ error: "Invalid request body. 'contents' is required." }, 400);
+        if (!message) {
+             return c.json({ error: "Invalid request body. 'message' is required." }, 400);
         }
 
+        // 1. Fetch Context (Orchestrator)
+        const context = await fetchUserContext(user.id, supabase);
+
+        // 2. Fetch Additional Neural Data
+        // - Consistency Index (7 days)
+        const consistencyIndex = await calculateConsistencyIndex(user.id, 7, supabase);
+
+        // - User's Custom Neural Config
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('neural_config')
+            .eq('id', user.id)
+            .single();
+
+        const customContext = profile?.neural_config?.context || '';
+
+        // 3. Construct Prompt with Neural Core + Data
+        const systemInstruction = `${NEURAL_CORE_INSTRUCTIONS}
+
+        CURRENT STATUS:
+        Persona: ${persona || 'The Watchman'}
+        User Timezone: ${client_tz || 'UTC'}
+        Consistency Index (7-Day): ${consistencyIndex}%
+
+        USER CUSTOM CONTEXT:
+        "${customContext}"
+
+        SYSTEM CONTEXT (LORE + LOGS):
+        ${context}
+
+        USER MESSAGE:
+        ${message}`;
+
+        // Upgrade to Gemini 2.0 Flash
         const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
-        // Pass the contents directly to the model
-        const result = await model.generateContent({
-            contents: body.contents
-        });
+        // 4. Stream Response
+        const result = await model.generateContentStream(systemInstruction);
 
-        const response = await result.response;
-
-        // Return the full response object logic or just the candidate
-        // The user asked to "Return the JSON result to the frontend"
-        // The SDK's response object structure is complex.
-        // We can construct a response similar to the REST API or just return what we have.
-
-        // result.response is a GenerativeContentResponse
-        // We'll return a simplified version or the full structure depending on what we can get.
-        // There isn't a "toJSON" on the result object directly that matches the REST API exactly 1:1 always,
-        // but let's try to return the candidates.
-
-        return c.json({
-            candidates: response.candidates,
-            promptFeedback: response.promptFeedback
+        return streamText(c, async (stream) => {
+            for await (const chunk of result.stream) {
+                const chunkText = chunk.text();
+                await stream.write(chunkText);
+            }
         });
 
     } catch (error: any) {
-        console.error('Error in /chat proxy:', error);
+        console.error('Error in /chat orchestrator:', error);
         return c.json({
             error: 'Error processing AI request',
             details: error.message
