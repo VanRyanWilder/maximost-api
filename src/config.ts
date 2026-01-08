@@ -12,6 +12,7 @@ const envSchema = z.object({
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   STRIPE_PRICE_ID_OPERATOR: z.string().optional(),
   STRIPE_PRICE_ID_SOVEREIGN: z.string().optional(),
+  ADMIN_EMAIL: z.string().email().optional(),
 });
 
 export const config = envSchema.parse(process.env);

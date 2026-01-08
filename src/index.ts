@@ -11,9 +11,10 @@ import profileRoutes from './routes/profileRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import logRoutes from './routes/logRoutes.js';
 import terraRoutes from './routes/terraRoutes.js';
+import supportRoutes from './routes/supportRoutes.js';
 import { calculateConsistencyIndex } from './lib/telemetry.js';
 import { calculateDrift } from './lib/shadowAudit.js';
-import type { AppEnv } from './hono.js';
+import type { AppEnv, EnrichedUser } from './hono.js';
 import { config } from './config.js';
 
 // Initialize the Hono app
@@ -68,7 +69,20 @@ app.use('/api/*', async (c, next) => {
         return c.json({ error: 'Unauthorized' }, 401);
     }
 
-    c.set('user', user);
+    // Role Logic Fix: Enrich user context with profile data (role, membership_tier)
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, membership_tier')
+        .eq('id', user.id)
+        .single();
+
+    // Merge profile data into user object or context
+    const enrichedUser: EnrichedUser = {
+        ...user,
+        profile: profile || { role: 'user', membership_tier: 'initiate' }
+    };
+
+    c.set('user', enrichedUser);
     c.set('supabase', supabase);
 
   } catch (error: unknown) {
@@ -98,6 +112,7 @@ app.route('/api/profiles', profileRoutes);
 app.route('/api/admin', adminRoutes);
 app.route('/api/habit_logs', logRoutes);
 app.route('/api/webhooks/terra', terraRoutes);
+app.route('/api/support', supportRoutes);
 
 // Lore Archive Endpoint
 app.get('/api/archive/lore', async (c) => {
@@ -111,7 +126,7 @@ app.get('/api/archive/lore', async (c) => {
     return c.json(data);
 });
 
-// Telemetry Endpoint
+// Telemetry Endpoint: Uptime (Current Status)
 app.get('/api/telemetry/uptime', async (c) => {
     const user = c.get('user');
     const supabase = c.get('supabase');
@@ -155,6 +170,31 @@ app.get('/api/telemetry/uptime', async (c) => {
     }
 });
 
+// Telemetry Endpoint: Averages (Monthly View Aggregation)
+app.get('/api/telemetry/averages', async (c) => {
+    const user = c.get('user');
+    const supabase = c.get('supabase');
+
+    try {
+        const [avg30, avg60, avg90] = await Promise.all([
+            calculateConsistencyIndex(user.id, 30, supabase),
+            calculateConsistencyIndex(user.id, 60, supabase),
+            calculateConsistencyIndex(user.id, 90, supabase)
+        ]);
+
+        return c.json({
+            averages: {
+                day30: avg30,
+                day60: avg60,
+                day90: avg90
+            }
+        });
+    } catch (error: any) {
+        console.error('Telemetry Averages Error:', error);
+        return c.json({ error: 'Failed to calculate averages' }, 500);
+    }
+});
+
 import { fetchUserContext } from './lib/orchestrator.js';
 
 app.get('/api/test-context', async (c) => {
@@ -173,9 +213,16 @@ app.get('/api/test-context', async (c) => {
 
 // Protected route to get the current user's data
 app.get('/api/users/me', (c) => {
-  const user = c.get('user');
+  const user = c.get('user') as EnrichedUser; // This is now the enriched user
   if (user) {
-    return c.json(user);
+    // Flatten structure for frontend hook if needed, or send as enriched
+    // Merging profile props to top level for standard hook consumption
+    const response = {
+        ...user,
+        role: user.profile?.role || 'user',
+        membership_tier: user.profile?.membership_tier || 'initiate'
+    };
+    return c.json(response);
   }
   return c.json({ error: 'User not found' }, 404);
 });
