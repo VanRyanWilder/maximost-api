@@ -13,7 +13,10 @@ const envSchema = z.object({
   STRIPE_PRICE_ID_OPERATOR: z.string().optional(),
   STRIPE_PRICE_ID_SOVEREIGN: z.string().optional(),
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
   ADMIN_EMAIL: z.string().email().optional(),
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 });

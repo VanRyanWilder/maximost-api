@@ -34,6 +34,7 @@ profileRoutes.put('/neural-config', async (c) => {
 });
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 // GET /neural-config - Fetch user's custom context
 profileRoutes.get('/neural-config', async (c) => {
     const user = c.get('user');
@@ -59,11 +60,14 @@ profileRoutes.get('/neural-config', async (c) => {
 
 =======
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 // Generate Share Code (Family Sync)
 profileRoutes.post('/share-code', async (c) => {
     const user = c.get('user');
     const supabase = c.get('supabase');
 
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
     // 1. Bloodline Gate: Check Sovereignty Tier
     const { data: profile, error: profileError } = await supabase
@@ -82,6 +86,8 @@ profileRoutes.post('/share-code', async (c) => {
         return c.json({ error: "Sovereignty Tier required to initialize the Bloodline Protocol." }, 403);
     }
 
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
     // Generate a simple 6-char code

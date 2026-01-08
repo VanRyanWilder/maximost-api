@@ -1,7 +1,10 @@
 import { Hono } from 'hono';
 import { calculateConsistencyIndex } from '../lib/telemetry.js';
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 import { runCombatSim } from '../lib/simulation.js';
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 import type { AppEnv } from '../hono.js';
@@ -55,6 +58,7 @@ adminRoutes.get('/users', async (c) => {
 });
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 // POST /api/admin/simulate - War Games Engine
 adminRoutes.post('/simulate', async (c) => {
     const supabase = c.get('supabase');
@@ -71,6 +75,8 @@ adminRoutes.post('/simulate', async (c) => {
     }
 });
 
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 export default adminRoutes;

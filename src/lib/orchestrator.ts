@@ -154,6 +154,7 @@ export async function fetchUserContext(userId: string, supabase: SupabaseClient,
     const loreMatches = await fetchLoreMatches(supabase, userMessage);
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     // 6. Bio-Rig Readiness Injection
     const { data: profile } = await supabase
         .from('profiles')
@@ -169,6 +170,9 @@ export async function fetchUserContext(userId: string, supabase: SupabaseClient,
     }
 
     return baseContext + (loreMatches ? `\n\n${loreMatches}` : "") + readinessWarning;
+=======
+    return baseContext + (loreMatches ? `\n\n${loreMatches}` : "");
+>>>>>>> Stashed changes
 =======
     return baseContext + (loreMatches ? `\n\n${loreMatches}` : "");
 >>>>>>> Stashed changes
