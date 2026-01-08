@@ -1,20 +1,22 @@
 import { Hono } from 'hono';
 import { calculateConsistencyIndex } from '../lib/telemetry.js';
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
 import { runCombatSim } from '../lib/simulation.js';
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-import type { AppEnv } from '../hono.js';
+import type { AppEnv, EnrichedUser } from '../hono.js';
+import { config } from '../config.js';
 
 const adminRoutes = new Hono<AppEnv>();
 
 // Admin Auth Guard Middleware
 adminRoutes.use('*', async (c, next) => {
-    const user = c.get('user');
+    const user = c.get('user') as EnrichedUser; // Use enriched user context
     const supabase = c.get('supabase');
+
+    // Admin Override Logic: Check env var first
+    const isHardcodedAdmin = user.email && user.email === config.ADMIN_EMAIL;
+    if (isHardcodedAdmin) {
+        await next();
+        return;
+    }
 
     const { data: profile } = await supabase
         .from('profiles')
@@ -26,7 +28,7 @@ adminRoutes.use('*', async (c, next) => {
         return c.json({ error: 'Access Denied: Admin Sovereignty Required' }, 403);
     }
     await next();
-    return; // Explicit return to satisfy TS7030
+    return;
 });
 
 adminRoutes.get('/users', async (c) => {
@@ -57,8 +59,6 @@ adminRoutes.get('/users', async (c) => {
     return c.json({ users: enrichedUsers });
 });
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
 // POST /api/admin/simulate - War Games Engine
 adminRoutes.post('/simulate', async (c) => {
     const supabase = c.get('supabase');
@@ -75,8 +75,4 @@ adminRoutes.post('/simulate', async (c) => {
     }
 });
 
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 export default adminRoutes;
