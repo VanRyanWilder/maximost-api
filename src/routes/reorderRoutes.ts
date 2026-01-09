@@ -1,9 +1,9 @@
 import { Hono } from 'hono';
-import type { AuthContext } from '../types.js';
+import type { AppEnv } from '../hono.js';
 
-const reorderRoutes = new Hono();
+const reorderRoutes = new Hono<AppEnv>();
 
-reorderRoutes.post('/habits/reorder', async (c: AuthContext) => {
+reorderRoutes.post('/habits/reorder', async (c) => {
     const user = c.get('user');
     const { orderedIds } = await c.req.json();
 
