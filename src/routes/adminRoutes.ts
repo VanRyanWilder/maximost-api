@@ -9,26 +9,13 @@ const adminRoutes = new Hono<AppEnv>();
 // Admin Auth Guard Middleware
 adminRoutes.use('*', async (c, next) => {
     const user = c.get('user') as EnrichedUser; // Use enriched user context
-    const supabase = c.get('supabase');
 
-    // Admin Override Logic: Check env var first
-    const isHardcodedAdmin = user.email && user.email === config.ADMIN_EMAIL;
-    if (isHardcodedAdmin) {
-        await next();
-        return;
-    }
-
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('membership_tier')
-        .eq('id', user.id)
-        .single();
-
-    if (!profile || profile.membership_tier !== 'admin') {
+    // Check role from enriched context (populated by index.ts middleware)
+    if (user.profile.role !== 'admin') {
         return c.json({ error: 'Access Denied: Admin Sovereignty Required' }, 403);
     }
+
     await next();
-    return;
 });
 
 adminRoutes.get('/users', async (c) => {
