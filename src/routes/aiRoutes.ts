@@ -1,16 +1,16 @@
 import { Hono } from 'hono';
 import { streamText } from 'hono/streaming';
-import type { AppEnv } from '../hono.js';
+import type { AppEnv } from '../hono';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { config } from '../config.js';
-import { fetchUserContext } from '../lib/orchestrator.js';
-import { NEURAL_CORE_INSTRUCTIONS } from '../lib/neuralCore.js';
-import { calculateConsistencyIndex } from '../lib/telemetry.js';
+import { config } from '../config';
+import { fetchUserContext } from '../lib/orchestrator';
+import { NEURAL_CORE_INSTRUCTIONS } from '../lib/neuralCore';
+import { calculateConsistencyIndex } from '../lib/telemetry';
 
 const aiRoutes = new Hono<AppEnv>();
 
 // Initialize Gemini with API Key from config
-const genAI = new GoogleGenerativeAI(config.GEMINI_API_KEY);
+const genAI = new GoogleGenerativeAI(config.GEMINI_API_KEY || '');
 
 aiRoutes.get('/daily-directive', async (c) => {
     // We already have the user from middleware, but for daily directive we just need to generate text

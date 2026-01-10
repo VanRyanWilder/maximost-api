@@ -1,10 +1,10 @@
 import { Hono } from 'hono';
-import type { AuthContext } from '../types.js';
+import type { AppEnv } from '../hono';
 
-const habitRoutes = new Hono();
+const habitRoutes = new Hono<AppEnv>();
 
 // GET /api/habits - Fetch all habits for the logged-in user
-habitRoutes.get('/', async (c: AuthContext) => {
+habitRoutes.get('/', async (c) => {
   const user = c.get('user');
   const supabase = c.get('supabase');
   const { data, error } = await supabase
@@ -21,7 +21,7 @@ habitRoutes.get('/', async (c: AuthContext) => {
 });
 
 // POST /api/habbits - Create a new habit for the logged-in user
-habitRoutes.post('/', async (c: AuthContext) => {
+habitRoutes.post('/', async (c) => {
     const user = c.get('user');
     const { name, description } = await c.req.json();
     if (!name) {
@@ -48,7 +48,7 @@ habitRoutes.post('/', async (c: AuthContext) => {
 });
 
 // PUT /api/habits/:id - Update a habit
-habitRoutes.put('/:id', async (c: AuthContext) => {
+habitRoutes.put('/:id', async (c) => {
     const user = c.get('user');
     const { id } = c.req.param();
     const { name, description } = await c.req.json();
@@ -71,7 +71,7 @@ habitRoutes.put('/:id', async (c: AuthContext) => {
 });
 
 // DELETE /api/habits/:id - Delete a habit
-habitRoutes.delete('/:id', async (c: AuthContext) => {
+habitRoutes.delete('/:id', async (c) => {
     const user = c.get('user');
     const { id } = c.req.param();
 

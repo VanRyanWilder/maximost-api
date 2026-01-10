@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { createClient } from '@supabase/supabase-js';
-import type { AppEnv } from '../hono.js';
+import type { AppEnv } from '../hono';
 
 const logRoutes = new Hono<AppEnv>();
 

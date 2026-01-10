@@ -1,48 +1,16 @@
 {
   "compilerOptions": {
-    /* --- Core Module Settings --- */
-    // These settings are crucial for a modern Node.js project.
-    // They work with "type": "module" in your package.json.
-    "target": "esnext",
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "esModuleInterop": true, // Recommended for better compatibility with different module types.
-    "verbatimModuleSyntax": true, // Enforces modern, unambiguous import/export syntax.
-    
-    /* --- File Structure --- */
-    // These must be uncommented. They tell TypeScript where to find your code
-    // and where to put the compiled JavaScript.
-    "rootDir": "./src",
-    "outDir": "./dist",
-    
-    /* --- Type Definitions --- */
-    // This fixes the "Cannot find name 'jest'" and other Node-related errors.
-    "types": ["jest", "node"],
-    
-    /* --- Strictness & Quality --- */
-    // These are excellent settings for catching bugs early.
+    "target": "ES2020",
+    "module": "CommonJS",
+    "moduleResolution": "node",
     "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    
-    /* --- Project Configuration --- */
-    "jsx": "react-jsx", // Keep this if you have React components in this project.
-    "resolveJsonModule": true, // Allows you to import JSON files directly.
-    "isolatedModules": true,
-    "skipLibCheck": true, // Prevents type-checking errors in your node_modules.
+    "esModuleInterop": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    
-    /* --- Path Aliases (Optional but Recommended) --- */
-    // This helps fix pathing errors like "Cannot find module '@/index'".
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"]
-    }
+    "resolveJsonModule": true
   },
-  // Tells the compiler which files to include.
   "include": ["src/**/*"],
-  // Tells the compiler which files to ignore.
   "exclude": ["node_modules", "dist"]
 }

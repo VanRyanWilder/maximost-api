@@ -1,10 +1,10 @@
 import { Hono } from 'hono';
-import type { AuthContext } from '../types.js';
+import type { AppEnv } from '../hono';
 
-const journalRoutes = new Hono();
+const journalRoutes = new Hono<AppEnv>();
 
 // GET /api/journal - Fetch all journal entries for the logged-in user
-journalRoutes.get('/', async (c: AuthContext) => {
+journalRoutes.get('/', async (c) => {
   const user = c.get('user');
   const supabase = c.get('supabase');
   const { data, error } = await supabase
@@ -21,7 +21,7 @@ journalRoutes.get('/', async (c: AuthContext) => {
 });
 
 // POST /api/journal - Create a new journal entry for the logged-in user
-journalRoutes.post('/', async (c: AuthContext) => {
+journalRoutes.post('/', async (c) => {
     const user = c.get('user');
     const { date, content, mood, tags } = await c.req.json();
     if (!content) {
@@ -50,7 +50,7 @@ journalRoutes.post('/', async (c: AuthContext) => {
 });
 
 // PUT (update) a journal entry
-journalRoutes.put('/:entryId', async (c: AuthContext) => {
+journalRoutes.put('/:entryId', async (c) => {
     const user = c.get('user');
     const { entryId } = c.req.param();
     const { date, content, mood, tags } = await c.req.json();
@@ -73,7 +73,7 @@ journalRoutes.put('/:entryId', async (c: AuthContext) => {
 });
 
 // DELETE a journal entry
-journalRoutes.delete('/:entryId', async (c: AuthContext) => {
+journalRoutes.delete('/:entryId', async (c) => {
     const user = c.get('user');
     const { entryId } = c.req.param();
 

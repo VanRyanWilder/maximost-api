@@ -1,7 +1,7 @@
 import { LRUCache } from 'lru-cache';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { getLore } from './lore.js';
-import { calculateDrift } from './shadowAudit.js';
+import { getLore } from './lore';
+import { calculateDrift } from './shadowAudit';
 
 // Level 2 Caching: 30 minutes TTL
 const cache = new LRUCache<string, string>({
@@ -13,20 +13,12 @@ const cache = new LRUCache<string, string>({
 async function fetchLoreMatches(supabase: SupabaseClient, userMessage: string = ""): Promise<string> {
     if (!userMessage) return "";
 
-    // Simple keyword extraction (naive)
-    // Remove common stop words and search
     const stopWords = ['the', 'and', 'is', 'in', 'at', 'of', 'a', 'to', 'for', 'with', 'my', 'how', 'why', 'what'];
     const keywords = userMessage.toLowerCase().split(/\s+/).filter(w => !stopWords.includes(w) && w.length > 3);
 
     if (keywords.length === 0) return "";
 
-    // Perform search on library_habits
-    // Note: Supabase/Postgres full text search would be better, but 'ilike' OR loop is okay for small sets
-    // Let's search for the first 3 keywords
     const searchTerms = keywords.slice(0, 3);
-
-    // OR logic: name ilike %k1% OR description ilike %k1% ...
-    // Hono/Supabase-js doesn't have a clean "OR" across multiple calls easily without Query Builder 'or' string
     let orQuery = "";
     searchTerms.forEach((term, idx) => {
         if (idx > 0) orQuery += ",";
@@ -53,25 +45,16 @@ async function fetchLoreMatches(supabase: SupabaseClient, userMessage: string = 
 }
 
 export async function fetchUserContext(userId: string, supabase: SupabaseClient, userMessage?: string): Promise<string> {
-    // 1. Check Cache (Note: We might need to cache lore matches separately or skip caching if message specific?
-    // User requested "Search the Archive for relevant habits and inject...".
-    // If we cache the whole context based on UserID, we lose the message-specific lore.
-    // Solution: Cache the 'Base Context' (Habits, Logs, Journal) and append Lore dynamically.
-
     let baseContext = cache.get(userId);
 
     if (!baseContext) {
-        // 2. Fetch Data Parallelism
         const lorePromise = getLore();
 
-        // Fetch Habits (Active)
         const habitsPromise = supabase
             .from('habits')
             .select('id, name, description, unit')
             .eq('user_id', userId);
 
-        // Fetch Habit Logs (Last 90 days total logic)
-        // Detailed logs for last 14 days
         const twoWeeksAgo = new Date();
         twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
 
@@ -81,7 +64,6 @@ export async function fetchUserContext(userId: string, supabase: SupabaseClient,
             .eq('user_id', userId)
             .gte('completed_at', twoWeeksAgo.toISOString());
 
-        // Fetch Journal Entries (Last 90 days)
         const ninetyDaysAgo = new Date();
         ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
@@ -89,10 +71,9 @@ export async function fetchUserContext(userId: string, supabase: SupabaseClient,
             .from('journal_entries')
             .select('date, content, mood, tags')
             .eq('user_id', userId)
-            .gte('created_at', ninetyDaysAgo.toISOString()) // Assuming created_at or date column. Using date from schema in routes.
-            .order('date', { ascending: false }); // Most recent first
+            .gte('created_at', ninetyDaysAgo.toISOString())
+            .order('date', { ascending: false });
 
-        // Shadow Audit
         const auditPromise = calculateDrift(userId, 7, supabase);
 
         const [lore, habitsResult, logsResult, journalResult, auditResult] = await Promise.all([
@@ -103,7 +84,6 @@ export async function fetchUserContext(userId: string, supabase: SupabaseClient,
             auditPromise
         ]);
 
-        // Error Handling
         if (habitsResult.error) console.error("Error fetching habits:", habitsResult.error);
         if (logsResult.error) console.error("Error fetching logs:", logsResult.error);
         if (journalResult.error) console.error("Error fetching journal:", journalResult.error);
@@ -112,7 +92,6 @@ export async function fetchUserContext(userId: string, supabase: SupabaseClient,
         const logs = logsResult.data || [];
         const journal = journalResult.data || [];
 
-        // 3. Assemble Base Context
         let context = `SYSTEM LORE:\n${lore}\n\n`;
 
         context += `SHADOW AUDIT:\n${auditResult}\n\n`;
@@ -128,7 +107,6 @@ export async function fetchUserContext(userId: string, supabase: SupabaseClient,
             context += `No logs recorded recently.\n`;
         } else {
             logs.forEach((l: any) => {
-                // Find habit name
                 const habit = habits.find((h: any) => h.id === l.habit_id);
                 const habitName = habit ? habit.name : 'Unknown Habit';
                 context += `- ${l.completed_at}: ${habitName} (Value: ${l.value}) ${l.note ? `Note: ${l.note}` : ''}\n`;
@@ -140,22 +118,17 @@ export async function fetchUserContext(userId: string, supabase: SupabaseClient,
         if (journal.length === 0) {
             context += `No journal entries.\n`;
         } else {
-            journal.slice(0, 10).forEach((j: any) => { // Limit to top 10 most recent to save tokens? Or allow all? "summary of previous 76 days"
+            journal.slice(0, 10).forEach((j: any) => {
                 context += `- ${j.date} [Mood: ${j.mood}]: ${j.content.substring(0, 200)}...\n`;
             });
         }
 
         baseContext = context;
-        // 4. Cache Result (Base only)
         cache.set(userId, baseContext);
     }
 
-    // 5. Dynamic Lore Injection (No caching for this part as it depends on message)
     const loreMatches = await fetchLoreMatches(supabase, userMessage);
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-    // 6. Bio-Rig Readiness Injection
     const { data: profile } = await supabase
         .from('profiles')
         .select('bio_rig_readiness')
@@ -170,10 +143,4 @@ export async function fetchUserContext(userId: string, supabase: SupabaseClient,
     }
 
     return baseContext + (loreMatches ? `\n\n${loreMatches}` : "") + readinessWarning;
-=======
-    return baseContext + (loreMatches ? `\n\n${loreMatches}` : "");
->>>>>>> Stashed changes
-=======
-    return baseContext + (loreMatches ? `\n\n${loreMatches}` : "");
->>>>>>> Stashed changes
 }

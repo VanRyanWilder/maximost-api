@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
-import { calculateConsistencyIndex } from '../lib/telemetry.js';
-import { runCombatSim } from '../lib/simulation.js';
-import type { AppEnv, EnrichedUser } from '../hono.js';
-import { config } from '../config.js';
+import { calculateConsistencyIndex } from '../lib/telemetry';
+import { runCombatSim } from '../lib/simulation';
+import type { AppEnv, EnrichedUser } from '../hono';
+import { config } from '../config';
 
 const adminRoutes = new Hono<AppEnv>();
 

@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import type { AppEnv } from '../hono.js';
+import type { AppEnv } from '../hono';
 
 const reorderRoutes = new Hono<AppEnv>();
 

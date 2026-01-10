@@ -1,34 +1,29 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { createClient } from '@supabase/supabase-js';
-import habitRoutes from './routes/habitRoutes.js';
-import journalRoutes from './routes/journalRoutes.js';
-import reorderRoutes from './routes/reorderRoutes.js';
-import aiRoutes from './routes/aiRoutes.js';
-import webhookRoutes from './routes/webhookRoutes.js';
-import protocolRoutes from './routes/protocolRoutes.js';
-import profileRoutes from './routes/profileRoutes.js';
-import adminRoutes from './routes/adminRoutes.js';
-import logRoutes from './routes/logRoutes.js';
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-import terraRoutes from './routes/terraRoutes.js';
-import supportRoutes from './routes/supportRoutes.js';
-import { calculateConsistencyIndex } from './lib/telemetry.js';
-import { calculateDrift } from './lib/shadowAudit.js';
-import type { AppEnv, EnrichedUser } from './hono.js';
-=======
-=======
->>>>>>> Stashed changes
-import { calculateConsistencyIndex } from './lib/telemetry.js';
-import type { AppEnv } from './hono.js';
->>>>>>> Stashed changes
-import { config } from './config.js';
+import { serve } from '@hono/node-server';
+import { config } from './config';
+import { AppEnv, EnrichedUser } from './hono';
 
-// Initialize the Hono app
+// Import Routes
+import protocolRoutes from './routes/protocolRoutes';
+import profileRoutes from './routes/profileRoutes';
+import supportRoutes from './routes/supportRoutes';
+import habitRoutes from './routes/habitRoutes';
+import aiRoutes from './routes/aiRoutes';
+import adminRoutes from './routes/adminRoutes';
+import journalRoutes from './routes/journalRoutes';
+import logRoutes from './routes/logRoutes';
+import reorderRoutes from './routes/reorderRoutes';
+import terraRoutes from './routes/terraRoutes';
+import webhookRoutes from './routes/webhookRoutes';
+
+import { calculateConsistencyIndex } from './lib/telemetry';
+import { calculateDrift } from './lib/shadowAudit';
+
 const app = new Hono<AppEnv>();
 
-// --- CORS Configuration ---
+// --- CORS ---
 app.use('*', cors({
   origin: [
     'http://localhost:5173',
@@ -37,132 +32,95 @@ app.use('*', cors({
     'https://maximost-frontend-ein793z1h-vanryanwilders-projects.vercel.app',
     'https://maximost-frontend.vercel.app',
   ],
-  allowHeaders: [
-    'Authorization',
-    'Content-Type',
-    'apikey',
-    'x-client-info',
-    'expires'
-  ],
-  allowMethods: ['POST', 'GET', 'OPTIONS', 'DELETE', 'PUT'],
+  allowHeaders: ['Authorization', 'Content-Type', 'apikey', 'x-client-info', 'expires'],
+  allowMethods: ['POST', 'GET', 'OPTIONS', 'DELETE', 'PUT', 'PATCH'],
   credentials: true,
   maxAge: 86400,
 }));
 
-// --- Supabase Middleware for Auth ---
+// --- Auth Middleware ---
 app.use('/api/*', async (c, next) => {
-  // Exclude webhooks from Auth Guard (Stripe sends its own signature)
-  if (c.req.path.startsWith('/api/webhooks')) {
-      await next();
-      return;
-  }
-
-  try {
-    const authHeader = c.req.header('authorization');
-    if (!authHeader) {
-        return c.json({ error: 'Authorization header is missing' }, 401);
+    // Exclude webhooks
+    if (c.req.path.startsWith('/api/webhooks')) {
+        return next();
     }
 
-    // Initialize Supabase with Service Role Key
-    const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_SERVICE_ROLE_KEY);
-
-    // Validate the token passed in the Authorization header
-    // The token is "Bearer <token>", so we can just pass it directly if we extract it,
-    // or set it in the client options. However, getUser(token) expects just the JWT string.
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-
-    if (error || !user) {
-        console.error("Auth error:", error);
-        return c.json({ error: 'Unauthorized' }, 401);
-    }
-
-    // Role Logic Fix: Enrich user context with profile data (role, membership_tier)
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role, membership_tier')
-        .eq('id', user.id)
-        .single();
-
-    // Merge profile data into user object or context
-    // Admin Override: Check environment variable fallback
-    const isHardcodedAdmin = user.email && user.email === config.ADMIN_EMAIL;
-    const finalRole = isHardcodedAdmin ? 'admin' : (profile?.role || 'user');
-
-    const enrichedUser: EnrichedUser = {
-        ...user,
-        profile: {
-            role: finalRole,
-            membership_tier: profile?.membership_tier || 'initiate'
+    try {
+        const authHeader = c.req.header('authorization');
+        if (!authHeader) {
+            return c.json({ error: 'Authorization header is missing' }, 401);
         }
-    };
 
-    c.set('user', enrichedUser);
-    c.set('supabase', supabase);
+        const token = authHeader.replace('Bearer ', '');
+        // Internal Admin Client: Used ONLY for auth verification and enrichment
+        const adminSupabase = createClient(config.SUPABASE_URL, config.SUPABASE_SERVICE_ROLE_KEY);
 
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("Auth Middleware Error:", message);
-    return c.json({ error: 'Internal Server Error during authentication' }, 500);
-  }
-  await next();
-  return;
+        const { data: { user }, error } = await adminSupabase.auth.getUser(token);
+
+        if (error || !user) {
+            console.error("Auth error:", error);
+            return c.json({ error: 'Unauthorized' }, 401);
+        }
+
+        // Enrich User
+        const { data: profile } = await adminSupabase
+            .from('profiles')
+            .select('role, membership_tier')
+            .eq('id', user.id)
+            .single();
+
+        const isHardcodedAdmin = user.email && user.email === config.ADMIN_EMAIL;
+        const finalRole = isHardcodedAdmin ? 'admin' : (profile?.role || 'user');
+
+        const enrichedUser: EnrichedUser = {
+            ...user,
+            profile: {
+                role: finalRole,
+                membership_tier: profile?.membership_tier || 'initiate'
+            }
+        };
+
+        // User Context Client: Used for downstream requests (Respects RLS)
+        // We pass the global headers (including Authorization) to forward the user's JWT.
+        const userSupabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY, {
+            global: {
+                headers: {
+                    Authorization: authHeader // Pass the Bearer token
+                }
+            }
+        });
+
+        c.set('user', enrichedUser);
+        c.set('supabase', userSupabase);
+
+    } catch (error) {
+        console.error("Auth Middleware Error:", error);
+        return c.json({ error: 'Internal Server Error during authentication' }, 500);
+    }
+    await next();
 });
 
-// --- API Routes ---
+// --- Routes ---
+app.get('/', (c) => c.text('MaxiMost API is running (Phoenix Protocol Active)'));
 
-// Health check route
-app.get('/', (c) => {
-  return c.text('MaxiMost API is running!');
-});
-
-// Mount the route handlers
-app.route('/api/habits', habitRoutes);
-app.route('/api/journal', journalRoutes);
-app.route('/api/reorder', reorderRoutes);
-app.route('/api/ai', aiRoutes);
-app.route('/api/webhooks', webhookRoutes);
 app.route('/api/protocols', protocolRoutes);
 app.route('/api/profiles', profileRoutes);
-app.route('/api/admin', adminRoutes);
-app.route('/api/habit_logs', logRoutes);
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-app.route('/api/webhooks/terra', terraRoutes);
 app.route('/api/support', supportRoutes);
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
+app.route('/api/habits', habitRoutes);
+app.route('/api/ai', aiRoutes);
+app.route('/api/admin', adminRoutes);
+app.route('/api/journal', journalRoutes);
+app.route('/api/habit_logs', logRoutes);
+app.route('/api/reorder', reorderRoutes);
+app.route('/api/webhooks', webhookRoutes);
+app.route('/api/webhooks/terra', terraRoutes);
 
-// Lore Archive Endpoint
-app.get('/api/archive/lore', async (c) => {
-    const supabase = c.get('supabase');
-    const { data, error } = await supabase
-        .from('library_habits')
-        .select('name, how_instruction, why_instruction')
-        .limit(100); // Reasonable limit for archive view
-
-    if (error) return c.json({ error: 'Failed to fetch lore' }, 500);
-    return c.json(data);
-});
-
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-// Telemetry Endpoint: Uptime (Current Status)
-=======
-// Telemetry Endpoint
->>>>>>> Stashed changes
-=======
-// Telemetry Endpoint
->>>>>>> Stashed changes
+// Telemetry Endpoint: Uptime
 app.get('/api/telemetry/uptime', async (c) => {
     const user = c.get('user');
     const supabase = c.get('supabase');
 
     try {
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
         const [score7, score30, score90, driftReport] = await Promise.all([
             calculateConsistencyIndex(user.id, 7, supabase),
             calculateConsistencyIndex(user.id, 30, supabase),
@@ -171,11 +129,6 @@ app.get('/api/telemetry/uptime', async (c) => {
         ]);
 
         const driftDetected = driftReport.includes("DRIFT DETECTED");
-
-        // Format patterns array from the drift report text
-        // The report is a multi-line string. We can just put the whole string in patterns[0] for now,
-        // or parse it. The prompt asked for "patterns": [], and "Empty Rig" schema showed empty array.
-        // We'll return the report as a single pattern string if present.
         const patterns = driftReport.includes("Audit: Routine maintenance") ? [] : [driftReport];
 
         return c.json({
@@ -186,10 +139,8 @@ app.get('/api/telemetry/uptime', async (c) => {
             patterns: patterns,
             status: "ready"
         });
-    } catch (error: any) {
+    } catch (error) {
         console.error('Telemetry error:', error);
-        // Even on error, try to return a valid "Zero Logs" structure so frontend doesn't hang
-        // providing the error details in console but clean state to UI
         return c.json({
             uptime_7d: 0,
             uptime_30d: 0,
@@ -201,7 +152,7 @@ app.get('/api/telemetry/uptime', async (c) => {
     }
 });
 
-// Telemetry Endpoint: Averages (Monthly View Aggregation)
+// Telemetry Endpoint: Averages
 app.get('/api/telemetry/averages', async (c) => {
     const user = c.get('user');
     const supabase = c.get('supabase');
@@ -210,104 +161,48 @@ app.get('/api/telemetry/averages', async (c) => {
         const [avg30, avg60, avg90] = await Promise.all([
             calculateConsistencyIndex(user.id, 30, supabase),
             calculateConsistencyIndex(user.id, 60, supabase),
-=======
-        const [score7, score30, score90] = await Promise.all([
-            calculateConsistencyIndex(user.id, 7, supabase),
-            calculateConsistencyIndex(user.id, 30, supabase),
->>>>>>> Stashed changes
-=======
-        const [score7, score30, score90] = await Promise.all([
-            calculateConsistencyIndex(user.id, 7, supabase),
-            calculateConsistencyIndex(user.id, 30, supabase),
->>>>>>> Stashed changes
             calculateConsistencyIndex(user.id, 90, supabase)
         ]);
 
         return c.json({
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
             averages: {
                 day30: avg30,
                 day60: avg60,
                 day90: avg90
             }
         });
-    } catch (error: any) {
+    } catch (error) {
         console.error('Telemetry Averages Error:', error);
         return c.json({ error: 'Failed to calculate averages' }, 500);
-=======
-=======
->>>>>>> Stashed changes
-            consistency: {
-                day7: score7,
-                day30: score30,
-                day90: score90
-            }
-        });
-    } catch (error: any) {
-        console.error('Telemetry error:', error);
-        return c.json({ error: 'Failed to calculate telemetry' }, 500);
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
     }
 });
 
-import { fetchUserContext } from './lib/orchestrator.js';
-
-app.get('/api/test-context', async (c) => {
-    const user = c.get('user');
+// Archive Lore
+app.get('/api/archive/lore', async (c) => {
     const supabase = c.get('supabase');
-    const start = Date.now();
-    const context = await fetchUserContext(user.id, supabase);
-    const duration = Date.now() - start;
+    const { data, error } = await supabase
+        .from('library_habits')
+        .select('name, how_instruction, why_instruction')
+        .limit(100);
 
-    return c.json({
-        duration_ms: duration,
-        context_length: context.length,
-        preview: context.substring(0, 500)
-    });
-});
-
-// Protected route to get the current user's data
-app.get('/api/users/me', (c) => {
-  const user = c.get('user') as EnrichedUser; // This is now the enriched user
-  if (user) {
-    // Flatten structure for frontend hook if needed, or send as enriched
-    // Merging profile props to top level for standard hook consumption
-    const response = {
-        ...user,
-        role: user.profile?.role || 'user',
-        membership_tier: user.profile?.membership_tier || 'initiate'
-    };
-    return c.json(response);
-  }
-  return c.json({ error: 'User not found' }, 404);
+    if (error) return c.json({ error: 'Failed to fetch lore' }, 500);
+    return c.json(data);
 });
 
 
-// --- Error Handling & Not Found ---
-app.notFound((c) => {
-    return c.json({ error: 'Not Found' }, 404);
+// Error Handling
+app.notFound((c) => c.json({ error: 'Not Found' }, 404));
+app.onError((err, c) => {
+    console.error(err);
+    return c.json({ error: 'Internal Server Error', message: err.message }, 500);
 });
 
-app.onError((err: Error, c) => {
-    console.error(err.stack);
-    return c.json({
-        error: 'Internal Server Error',
-        message: err.message
-    }, 500);
-});
-
-import { serve } from '@hono/node-server';
-
+// Start Server
 serve({
   fetch: app.fetch,
   port: parseInt(config.PORT),
-  hostname: '0.0.0.0'
 }, (info) => {
-    console.log(`Server is running at http://${info.address}:${info.port}`)
-})
+    console.log(`Server is running at http://${info.address}:${info.port}`);
+});
 
 export default app;

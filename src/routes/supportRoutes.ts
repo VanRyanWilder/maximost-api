@@ -1,52 +1,51 @@
 import { Hono } from 'hono';
-import { createClient } from '@supabase/supabase-js';
-import type { AppEnv, EnrichedUser } from '../hono.js';
-import { config } from '../config.js';
+import { AppEnv } from '../hono';
 
-const supportRoutes = new Hono<AppEnv>();
+const app = new Hono<AppEnv>();
 
-// POST /api/support/signal - The Red Phone
-supportRoutes.post('/signal', async (c) => {
-    const user = c.get('user') as EnrichedUser;
+app.post('/signal', async (c) => {
+    const user = c.get('user');
     const supabase = c.get('supabase');
-    const { message, signal_type } = await c.req.json();
+    const { message, category, metadata } = await c.req.json();
 
-    if (!message || !signal_type) {
-        return c.json({ error: 'Message and Signal Type are required.' }, 400);
+    if (!message) {
+        return c.json({ error: 'Message is required' }, 400);
     }
 
-    // Auth Guard: Sovereignty Check
-    const tier = user.profile?.membership_tier;
-    const role = user.profile?.role;
-    const isAdmin = role === 'admin' || (user.email && user.email === config.ADMIN_EMAIL);
+    // Logic: If user.role === 'admin', set priority_level = 'sovereign'. Else standard.
+    // Also users with 'sovereign' membership_tier might deserve higher priority?
+    // Prompt says: "If user.role === 'admin', set priority_level = 'sovereign'. Else standard."
+    // Strictly following prompt logic for priority.
 
-    // Priority Logic
-    let priority_level = 'standard';
-    let responseMessage = "Ticket Logged. Standard Queue.";
+    // Wait, memory says: "includes a priority_level column: 'sovereign' for high-tier, 'standard' for others".
+    // "priority_level: 'sovereign' for high-tier" implies architect/sovereign tier users too.
+    // But the prompt explicitly says: "Logic: If user.role === 'admin', set priority_level = 'sovereign'. Else standard."
+    // I will stick to the prompt's explicit logic for now, but maybe add membership check if "admin" implies "high level control" or if it was a typo for "architect" tier.
+    // Given the context of "The Red Phone" usually being for VIPs, let's assume prompt is strict but maybe incomplete.
+    // However, prompt > memory. I'll use role === 'admin' check as requested.
 
-    if (isAdmin || tier === 'sovereign' || tier === 'architect') {
-        priority_level = 'sovereign';
-        responseMessage = "Signal Received. Priority Line Active.";
-    }
+    // Correction: "If user.role === 'admin', set priority_level = 'sovereign'. Else standard."
+    // I will blindly follow this.
 
-    const { data, error } = await supabase
+    const priorityLevel = (user.profile.role === 'admin') ? 'sovereign' : 'standard';
+
+    const { error } = await supabase
         .from('support_signals')
         .insert({
             user_id: user.id,
-            message: message,
-            signal_type: signal_type,
-            priority_level: priority_level,
-            status: 'open'
-        })
-        .select()
-        .single();
+            message,
+            category: category || 'general',
+            metadata: metadata || {},
+            priority_level: priorityLevel,
+            status: 'pending'
+        });
 
     if (error) {
-        console.error('Red Phone Signal Failed:', error);
-        return c.json({ error: 'Signal Transmission Failed.' }, 500);
+        console.error('Support Signal Error:', error);
+        return c.json({ error: 'Failed to send signal' }, 500);
     }
 
-    return c.json({ message: responseMessage, signal: data });
+    return c.json({ message: 'Signal received', priority: priorityLevel });
 });
 
-export default supportRoutes;
+export default app;

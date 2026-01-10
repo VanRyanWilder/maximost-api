@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
-import { config } from '../config.js';
-import type { AppEnv } from '../hono.js';
+import { config } from '../config';
+import type { AppEnv } from '../hono';
 
 const terraRoutes = new Hono<AppEnv>();
 

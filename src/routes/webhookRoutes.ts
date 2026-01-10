@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
-import { config } from '../config.js';
+import { config } from '../config';
 
 const webhookRoutes = new Hono();
 
