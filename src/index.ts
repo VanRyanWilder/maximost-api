@@ -65,7 +65,7 @@ app.use('/api/*', async (c, next) => {
         // Enrich User
         const { data: profile } = await adminSupabase
             .from('profiles')
-            .select('role, membership_tier')
+            .select('role, membership_tier, neural_config')
             .eq('id', user.id)
             .single();
 
@@ -76,7 +76,8 @@ app.use('/api/*', async (c, next) => {
             ...user,
             profile: {
                 role: finalRole,
-                membership_tier: profile?.membership_tier || 'initiate'
+                membership_tier: profile?.membership_tier || 'initiate',
+                neural_config: profile?.neural_config || null
             }
         };
 

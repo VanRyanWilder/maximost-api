@@ -4,6 +4,7 @@ export interface EnrichedUser extends User {
   profile: {
     role: 'user' | 'admin';
     membership_tier: 'initiate' | 'operator' | 'sovereign' | 'architect';
+    neural_config?: any;
   };
 }
 
