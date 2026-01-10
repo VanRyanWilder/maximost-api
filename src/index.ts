@@ -25,17 +25,26 @@ const app = new Hono<AppEnv>();
 
 // --- CORS ---
 app.use('*', cors({
-  origin: [
-    'http://localhost:5173',
-    'https://maximost.com',
-    'https://maximost-frontend-3nq4duyqq-vanryanwilders-projects.vercel.app',
-    'https://maximost-frontend-ein793z1h-vanryanwilders-projects.vercel.app',
-    'https://maximost-frontend.vercel.app',
-  ],
-  allowHeaders: ['Authorization', 'Content-Type', 'apikey', 'x-client-info', 'expires'],
+  origin: (origin) => {
+    // 1. Allow Localhost
+    if (!origin || origin.includes('localhost')) {
+      return origin;
+    }
+    // 2. Allow Production
+    if (origin === 'https://www.maximost.com' || origin === 'https://maximost.com') {
+      return origin;
+    }
+    // 3. Allow Vercel Previews (Regex Match)
+    // Matches: https://maximost-frontend-*.vercel.app
+    if (origin.match(/^https:\/\/maximost-frontend-.*\.vercel\.app$/)) {
+      return origin;
+    }
+    return undefined; // Block others
+  },
+  allowHeaders: ['Authorization', 'Content-Type', 'apikey', 'x-client-info', 'expires', 'x-admin-secret'],
   allowMethods: ['POST', 'GET', 'OPTIONS', 'DELETE', 'PUT', 'PATCH'],
   credentials: true,
-  maxAge: 86400,
+  maxAge: 600,
 }));
 
 // --- Auth Middleware ---
