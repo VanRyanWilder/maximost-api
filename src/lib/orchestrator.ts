@@ -76,25 +76,42 @@ export async function fetchUserContext(userId: string, supabase: SupabaseClient,
 
         const auditPromise = calculateDrift(userId, 7, supabase);
 
-        const [lore, habitsResult, logsResult, journalResult, auditResult] = await Promise.all([
+        // Fetch Telemetry from View
+        const telemetryPromise = supabase
+            .from('habit_stats_view')
+            .select('title, vol_30, trend_direction')
+            .eq('user_id', userId);
+
+        const [lore, habitsResult, logsResult, journalResult, auditResult, telemetryResult] = await Promise.all([
             lorePromise,
             habitsPromise,
             logsPromise,
             journalPromise,
-            auditPromise
+            auditPromise,
+            telemetryPromise
         ]);
 
         if (habitsResult.error) console.error("Error fetching habits:", habitsResult.error);
         if (logsResult.error) console.error("Error fetching logs:", logsResult.error);
         if (journalResult.error) console.error("Error fetching journal:", journalResult.error);
+        if (telemetryResult.error) console.warn("Error fetching telemetry view (Optional):", telemetryResult.error.message);
 
         const habits = habitsResult.data || [];
         const logs = logsResult.data || [];
         const journal = journalResult.data || [];
+        const telemetry = telemetryResult.data || [];
 
         let context = `SYSTEM LORE:\n${lore}\n\n`;
 
         context += `SHADOW AUDIT:\n${auditResult}\n\n`;
+
+        if (telemetry.length > 0) {
+            context += `HABIT TELEMETRY (30 Days):\n`;
+            telemetry.forEach((t: any) => {
+                context += `- ${t.title}: ${t.vol_30} completions (Trend: ${t.trend_direction.toUpperCase()})\n`;
+            });
+            context += `\n`;
+        }
 
         context += `USER HABIT DEFINITIONS:\n`;
         habits.forEach((h: any) => {
