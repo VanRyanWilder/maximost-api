@@ -1,6 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 
-export async function runCombatSim(userId: string, supabase: SupabaseClient) {
+export async function runCombatSim(userId: string, supabase: SupabaseClient, days: number = 30) {
     // 1. Fetch User's Habits
     const { data: habits, error: habitsError } = await supabase
         .from('habits')
@@ -25,8 +25,8 @@ export async function runCombatSim(userId: string, supabase: SupabaseClient) {
     const logsToUpsert: any[] = [];
     const today = new Date();
 
-    // 3. Generate Logs for 90 Days
-    for (let i = 0; i < 90; i++) {
+    // 3. Generate Logs for N Days
+    for (let i = 0; i < days; i++) {
         const date = new Date(today);
         date.setDate(date.getDate() - i);
         const dateStr = date.toISOString().split('T')[0];

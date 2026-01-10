@@ -18,7 +18,15 @@ app.post('/ingest', async (c) => {
     const { habits, protocols } = body;
 
     if (!habits || !protocols) {
-        return c.json({ error: 'Invalid payload: habits and protocols required' }, 400);
+        return c.json({ error: 'Invalid payload: habits and protocols keys required' }, 400);
+    }
+
+    if (!Array.isArray(habits)) {
+        return c.json({ error: 'Invalid payload: habits must be an array' }, 400);
+    }
+
+    if (!Array.isArray(protocols)) {
+        return c.json({ error: 'Invalid payload: protocols must be an array' }, 400);
     }
 
     // 3. Initialize Admin Supabase Client (Service Role)

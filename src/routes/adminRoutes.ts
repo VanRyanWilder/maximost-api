@@ -49,12 +49,15 @@ adminRoutes.get('/users', async (c) => {
 // POST /api/admin/simulate - War Games Engine
 adminRoutes.post('/simulate', async (c) => {
     const supabase = c.get('supabase');
-    const { userId } = await c.req.json();
+    const { userId, days } = await c.req.json();
 
     if (!userId) return c.json({ error: 'User ID is required' }, 400);
 
+    // Limit days to avoid timeout
+    const simDays = days ? Math.min(parseInt(days), 90) : 30;
+
     try {
-        const result = await runCombatSim(userId, supabase);
+        const result = await runCombatSim(userId, supabase, simDays);
         return c.json(result);
     } catch (error: any) {
         console.error('Simulation Error:', error);
