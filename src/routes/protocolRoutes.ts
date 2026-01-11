@@ -123,17 +123,17 @@ app.post('/deploy', async (c) => {
     // Map library habits to user habits
     const userHabits = libraryHabits.map(h => ({
         user_id: user.id,
-        name: h.name, // or h.title if mapped
-        description: h.description, // "Molecular Override Logic": user override? Here we just copy library desc as default?
-        // Memory says: library_habits.description stores Layman Hook.
-        // habits.description stores user's override.
-        // So we populate it with the library description initially.
+        // v12 Schema Mapping: title is primary, fallback to name.
+        name: h.title || h.name,
+        // library_habits.description is the Layman Hook.
+        description: h.description,
         slug: h.slug,
         type: h.type || 'checkbox',
         target_value: h.target_value || 1,
         frequency: h.frequency || 'daily',
-        icon: h.icon,
-        theme: h.theme // "Themes into user habits"
+        // v12 Metadata Mapping
+        icon: h.metadata?.visuals?.icon || h.icon,
+        theme: h.metadata?.visuals?.theme || h.theme
     }));
 
     // 5. Insert/Upsert into habits

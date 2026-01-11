@@ -1,0 +1,11 @@
+[
+  { "name": "Atlas Golden Set", "expert_voice": "Founder", "theme_override": "maxi_blue", "description": "The foundation for Rig stability.", "habits": ["morning_sun", "deep_work", "daily_steps", "shadow_audit", "digital_sunset"] },
+  { "name": "Neuro-Rig Stack", "expert_voice": "Andrew Huberman", "theme_override": "oxygen_cyan", "description": "Biological hardware optimization.", "habits": ["morning_sun", "cold_plunge", "nsdr_reset", "digital_sunset", "sleep_cocktail"] },
+  { "name": "Iron Mind", "expert_voice": "David Goggins", "theme_override": "combat_red", "description": "Callous the mind through suffering.", "habits": ["accountability_mirror", "heavy_lifting", "taking_souls", "cookie_jar", "forty_percent"] },
+  { "name": "Discipline Stack", "expert_voice": "Jocko Willink", "theme_override": "slate_steel", "description": "The military standard for daily execution.", "habits": ["make_bed", "deep_work", "shadow_audit", "glycemic_defense"] },
+  { "name": "The Citadel", "expert_voice": "Marcus Aurelius", "theme_override": "ghost_white", "description": "Impervious to external fortune.", "habits": ["memento_mori", "amor_fati", "prayer_stillness", "good_deed", "dichotomy_control"] },
+  { "name": "Centenarian Decathlon", "expert_voice": "Peter Attia", "theme_override": "bio_emerald", "description": "Training for the Marginal Decade.", "habits": ["daily_steps", "heavy_lifting", "fasting", "vo2_max", "dead_hang"] },
+  { "name": "The War Phase", "expert_voice": "The Operator", "theme_override": "warning_amber", "description": "High-output optimization for crisis.", "habits": ["sauna", "digital_air_gap", "cold_bedroom", "deep_work", "taking_souls"] },
+  { "name": "Deep Stack", "expert_voice": "Cal Newport", "theme_override": "neural_violet", "description": "Unlocking the cognitive superpower.", "habits": ["deep_work", "daily_shutdown", "touch_grass", "digital_air_gap"] },
+  { "name": "The Wealth Stack", "expert_voice": "Naval Ravikant", "theme_override": "maxi_blue", "description": "Leveraging judgment over time.", "habits": ["leverage_audit", "skill_acquisition", "deep_work", "prayer_stillness"] }
+]
