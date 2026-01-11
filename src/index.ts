@@ -91,7 +91,9 @@ app.use('/api/*', async (c, next) => {
             return c.json({ error: 'Authorization header is missing' }, 401);
         }
 
-        const token = authHeader.replace('Bearer ', '');
+        // Robust parsing: Case-insensitive 'Bearer' and trim whitespace
+        const token = authHeader.replace(/^Bearer /i, '').trim();
+
         // Internal Admin Client: Used ONLY for auth verification and enrichment
         const adminSupabase = createClient(config.SUPABASE_URL, config.SUPABASE_SERVICE_ROLE_KEY);
 
