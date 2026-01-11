@@ -47,45 +47,52 @@ app.use('*', cors({
   maxAge: 600,
 }));
 
+// --- Global Admin Bypass Middleware ---
+app.use('*', async (c, next) => {
+    const adminSecret = c.req.header('x-admin-secret');
+    if (adminSecret === 'phoenix-protocol-v6-override') {
+        console.log('⚡ SKELETON KEY USED - BYPASSING AUTH');
+        const mockUser = {
+            id: 'admin-bypass',
+            email: 'admin@bypass.local',
+            app_metadata: {},
+            user_metadata: {},
+            aud: 'authenticated',
+            created_at: new Date().toISOString(),
+        };
+
+        const enrichedUser: EnrichedUser = {
+            ...mockUser,
+            profile: {
+                role: 'admin',
+                membership_tier: 'architect',
+                neural_config: null
+            }
+        };
+
+        // Give full admin power
+        const adminSupabase = createClient(config.SUPABASE_URL, config.SUPABASE_SERVICE_ROLE_KEY);
+        c.set('user', enrichedUser);
+        c.set('supabase', adminSupabase);
+    }
+    await next();
+});
+
 // --- Auth Middleware ---
 app.use('/api/*', async (c, next) => {
-    // Exclude webhooks
+    // 1. Bypass if User is already set (by Skeleton Key)
+    if (c.get('user')) {
+        await next();
+        return;
+    }
+
+    // 2. Exclude webhooks
     if (c.req.path.startsWith('/api/webhooks')) {
         return next();
     }
 
     try {
         const authHeader = c.req.header('authorization');
-        const adminSecret = c.req.header('x-admin-secret');
-
-        // Admin Bypass (Josh's Backdoor)
-        if (c.req.path === '/api/protocols/ingest' && adminSecret === 'phoenix-protocol-v6-override') {
-             const mockUser = {
-                id: 'admin-bypass',
-                email: 'admin@bypass.local',
-                app_metadata: {},
-                user_metadata: {},
-                aud: 'authenticated',
-                created_at: new Date().toISOString(),
-             };
-
-             const enrichedUser: EnrichedUser = {
-                ...mockUser,
-                profile: {
-                    role: 'admin',
-                    membership_tier: 'architect',
-                    neural_config: null
-                }
-            };
-
-            // Give full admin power
-            const adminSupabase = createClient(config.SUPABASE_URL, config.SUPABASE_SERVICE_ROLE_KEY);
-            c.set('user', enrichedUser);
-            c.set('supabase', adminSupabase);
-
-            await next();
-            return;
-        }
 
         if (!authHeader) {
             return c.json({ error: 'Authorization header is missing' }, 401);
