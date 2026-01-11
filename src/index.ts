@@ -59,7 +59,7 @@ app.use('/api/*', async (c, next) => {
         const adminSecret = c.req.header('x-admin-secret');
 
         // Admin Bypass (Josh's Backdoor)
-        if (c.req.path === '/api/protocols/ingest' && adminSecret === 'phoenix-protocol-v6') {
+        if (c.req.path === '/api/protocols/ingest' && adminSecret === 'phoenix-protocol-v6-override') {
              const mockUser = {
                 id: 'admin-bypass',
                 email: 'admin@bypass.local',
