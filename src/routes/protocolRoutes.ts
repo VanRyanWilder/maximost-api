@@ -81,7 +81,7 @@ app.post('/deploy', async (c) => {
     // Let's implement a basic check if protocol has a 'tier' field.
     // If protocol.tier is 'sovereign' and user is 'operator', deny.
     // Levels: initiate (0), operator (1), sovereign (2), architect (3)
-    const tiers = { 'initiate': 0, 'operator': 1, 'sovereign': 2, 'architect': 3 };
+    const tiers = { 'initiate': 0, 'operator': 1, 'sovereign': 2, 'vanguard': 2, 'architect': 3 };
     const userLevel = tiers[user.profile.membership_tier] || 0;
     // Assume protocol has a required_tier or similar. If not, skip.
     // If protocol schema doesn't have it, we skip.

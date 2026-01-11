@@ -54,6 +54,48 @@ aiRoutes.post('/chat', async (c) => {
              return c.json({ error: "Invalid request body. 'message' is required." }, 400);
         }
 
+        // 0. Usage Guardrails
+        // Fetch current usage
+        const { data: usageProfile } = await supabase
+            .from('profiles')
+            .select('ai_usage_count, ai_usage_period, membership_tier')
+            .eq('id', user.id)
+            .single();
+
+        const currentCount = usageProfile?.ai_usage_count || 0;
+        const currentPeriod = usageProfile?.ai_usage_period; // Assuming date string
+        const tier = usageProfile?.membership_tier;
+
+        // Reset if new month (Simple logic: check if currentPeriod is same month/year as now)
+        // If Period is null, set to now.
+        const now = new Date();
+        const periodDate = currentPeriod ? new Date(currentPeriod) : new Date(0);
+
+        let newCount = currentCount;
+        if (now.getMonth() !== periodDate.getMonth() || now.getFullYear() !== periodDate.getFullYear()) {
+            newCount = 0;
+            // Update period to now in DB later
+        }
+
+        // Soft Cap Check: Lifetime (Sovereign/Vanguard/Architect) > 500
+        const isLifetime = ['sovereign', 'vanguard', 'architect'].includes(tier);
+        if (isLifetime && newCount >= 500) {
+            // Trigger 429 "Too Many Requests" with specific header/message for "Top Up"
+            c.header('X-AI-Limit-Reached', 'true');
+            return c.json({ error: 'Monthly AI limit reached. Fair use policy.' }, 429);
+        }
+
+        // Increment Usage (Async update to not block too much, or await it)
+        await supabase
+            .from('profiles')
+            .update({
+                ai_usage_count: newCount + 1,
+                ai_usage_period: now.toISOString().split('T')[0] // Update date to keep it fresh or just on reset?
+                // Better: Only update period if we reset it?
+                // Let's just update both to be safe and simple.
+            })
+            .eq('id', user.id);
+
         // 1. Fetch Context (Orchestrator)
         const context = await fetchUserContext(user.id, supabase);
 

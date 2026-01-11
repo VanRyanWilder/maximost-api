@@ -80,6 +80,8 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
             newTier = 'operator';
         } else if (priceId === config.STRIPE_PRICE_ID_SOVEREIGN) {
             newTier = 'sovereign';
+        } else if (priceId === config.STRIPE_PRICE_ID_VANGUARD) {
+            newTier = 'vanguard';
         }
 
         if (newTier !== 'initiate') {
@@ -94,6 +96,19 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
                  console.error('Error updating membership tier:', error);
              } else {
                  console.log(`Updated user ${userId} to tier ${newTier}`);
+
+                 // Scholarship Logic for Vanguard
+                 if (newTier === 'vanguard') {
+                     const scholarshipCode = 'PHX-' + Math.random().toString(36).substring(2, 8).toUpperCase() + Math.random().toString(36).substring(2, 8).toUpperCase();
+
+                     const { error: scholarError } = await supabase.from('scholarships').insert({
+                         code: scholarshipCode,
+                         sponsor_id: userId,
+                         is_redeemed: false
+                     });
+
+                     if (scholarError) console.error('Error generating scholarship:', scholarError);
+                 }
              }
         }
 
