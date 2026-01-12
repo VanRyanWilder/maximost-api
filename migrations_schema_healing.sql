@@ -5,10 +5,10 @@
 -- 1. Library Habits (The Atoms)
 -- A. ID Restoration & Primary Key Logic
 -- Ensure ID column exists
-ALTER TABLE library_habits ADD COLUMN IF NOT EXISTS id UUID DEFAULT gen_random_uuid();
+ALTER TABLE public.library_habits ADD COLUMN IF NOT EXISTS id UUID DEFAULT gen_random_uuid();
 
--- Ensure Slug is Unique (Safety Net)
-ALTER TABLE library_habits ADD CONSTRAINT library_habits_slug_key UNIQUE (slug);
+-- Backfill UUIDs for any null entries (Safety Net)
+UPDATE public.library_habits SET id = gen_random_uuid() WHERE id IS NULL;
 
 -- Demote Slug if it was PK (Handshake) and Promote ID
 DO $$
@@ -22,28 +22,32 @@ BEGIN
         AND kcu.column_name != 'id'
     ) THEN
         -- Drop existing PK
-        EXECUTE 'ALTER TABLE library_habits DROP CONSTRAINT ' || (
+        EXECUTE 'ALTER TABLE public.library_habits DROP CONSTRAINT ' || (
             SELECT constraint_name FROM information_schema.table_constraints
             WHERE table_name = 'library_habits' AND constraint_type = 'PRIMARY KEY' LIMIT 1
         );
         -- Add PK on ID
-        ALTER TABLE library_habits ADD PRIMARY KEY (id);
+        ALTER TABLE public.library_habits ADD PRIMARY KEY (id);
     ELSIF NOT EXISTS (
         SELECT 1 FROM information_schema.table_constraints
         WHERE table_name = 'library_habits' AND constraint_type = 'PRIMARY KEY'
     ) THEN
         -- No PK exists, add it on ID
-        ALTER TABLE library_habits ADD PRIMARY KEY (id);
+        ALTER TABLE public.library_habits ADD PRIMARY KEY (id);
     END IF;
 END $$;
 
+-- Ensure Slug is Unique (Secondary Identifier)
+ALTER TABLE public.library_habits ADD CONSTRAINT library_habits_slug_key UNIQUE (slug);
+
+
 -- B. Visuals & Metadata
 -- Adding explicit color column for high-performance CSS mapping
-ALTER TABLE library_habits ADD COLUMN IF NOT EXISTS color TEXT;
+ALTER TABLE public.library_habits ADD COLUMN IF NOT EXISTS color TEXT;
 -- Ensure metadata exists (v12 requirement)
-ALTER TABLE library_habits ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.library_habits ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;
 
 -- 2. User Habits (The Active Rig)
 -- Adding color and metadata to support "Blank Motivation" fix and UI theming
-ALTER TABLE habits ADD COLUMN IF NOT EXISTS color TEXT;
-ALTER TABLE habits ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.habits ADD COLUMN IF NOT EXISTS color TEXT;
+ALTER TABLE public.habits ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;

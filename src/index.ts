@@ -59,7 +59,7 @@ app.use('*', async (c, next) => {
         console.log('⚡ AUTH BYPASS ACTIVATED');
         const mockUser = {
             id: 'admin-bypass',
-            email: 'admin@bypass.local',
+            email: 'admin@maximost.com',
             app_metadata: {},
             user_metadata: {},
             aud: 'authenticated',

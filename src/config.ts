@@ -8,7 +8,7 @@ const envSchema = z.object({
   SUPABASE_URL: z.string().url(),
   SUPABASE_ANON_KEY: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-  ADMIN_EMAIL: z.string().email().optional(),
+  ADMIN_EMAIL: z.string().email().optional().default('admin@maximost.com'),
   GEMINI_API_KEY: z.string().optional(),
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
