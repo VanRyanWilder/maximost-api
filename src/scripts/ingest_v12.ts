@@ -29,10 +29,14 @@ async function ingestHabits() {
     console.log(`Ingesting ${habitsData.length} habits...`);
 
     // Map description from metadata if missing AND set is_starting_5
+    // Also populate legacy columns (icon, theme) from metadata to support v11 UI
     const mappedHabits = habitsData.map((h: any) => ({
         ...h,
         description: h.description || h.metadata?.compiler?.why || h.metadata?.compiler?.atom || 'No description available.',
-        is_starting_5: startingFiveSlugs.includes(h.slug)
+        is_starting_5: startingFiveSlugs.includes(h.slug),
+        icon: h.metadata?.visuals?.icon || h.icon,
+        theme: h.metadata?.visuals?.theme || h.theme,
+        category: h.category
     }));
 
     const { error } = await supabase

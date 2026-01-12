@@ -239,7 +239,7 @@ app.get('/api/archive/lore', async (c) => {
     const supabase = c.get('supabase');
     const { data, error } = await supabase
         .from('library_habits')
-        .select('name, how_instruction, why_instruction')
+        .select('*') // Select ALL columns (including metadata, icon, theme)
         .limit(100);
 
     if (error) return c.json({ error: 'Failed to fetch lore' }, 500);
