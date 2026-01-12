@@ -21,9 +21,15 @@ async function ingestHabits() {
 
     console.log(`Ingesting ${habitsData.length} habits...`);
 
+    // Map description from metadata if missing
+    const mappedHabits = habitsData.map((h: any) => ({
+        ...h,
+        description: h.description || h.metadata?.compiler?.why || h.metadata?.compiler?.atom || 'No description available.'
+    }));
+
     const { error } = await supabase
         .from('library_habits')
-        .upsert(habitsData, { onConflict: 'slug' });
+        .upsert(mappedHabits, { onConflict: 'slug' });
 
     if (error) {
         console.error('Error ingesting habits:', error);

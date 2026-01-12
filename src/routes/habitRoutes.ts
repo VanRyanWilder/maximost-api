@@ -47,6 +47,51 @@ habitRoutes.post('/', async (c) => {
     return c.json(data, { status: 201 });
 });
 
+// POST /api/habits/adopt - Adopt a habit from the library
+habitRoutes.post('/adopt', async (c) => {
+    const user = c.get('user');
+    const { slug } = await c.req.json();
+    const supabase = c.get('supabase');
+
+    if (!slug) return c.json({ error: 'Slug is required' }, 400);
+
+    // 1. Fetch from Library
+    const { data: libHabit, error: libError } = await supabase
+        .from('library_habits')
+        .select('*')
+        .eq('slug', slug)
+        .single();
+
+    if (libError || !libHabit) {
+        return c.json({ error: 'Habit not found in library' }, 404);
+    }
+
+    // 2. Insert into User Habits
+    // Mapping v12 Metadata to User Habit Columns
+    const { error: insertError } = await supabase
+        .from('habits')
+        .insert({
+            user_id: user.id,
+            name: libHabit.title || libHabit.name,
+            description: libHabit.description || libHabit.metadata?.compiler?.why,
+            slug: libHabit.slug,
+            theme: libHabit.metadata?.visuals?.theme || libHabit.theme,
+            icon: libHabit.metadata?.visuals?.icon || libHabit.icon,
+            how_instruction: libHabit.metadata?.compiler?.step,
+            why_instruction: libHabit.metadata?.compiler?.why,
+            type: libHabit.type || 'checkbox',
+            target_value: libHabit.target_value || 1,
+            unit: libHabit.unit
+        });
+
+    if (insertError) {
+        console.error('Adopt Habit Error:', insertError);
+        return c.json({ error: 'Failed to adopt habit', details: insertError.message }, 500);
+    }
+
+    return c.json({ message: 'Habit adopted successfully' });
+});
+
 // PUT /api/habits/:id - Update a habit
 habitRoutes.put('/:id', async (c) => {
     const user = c.get('user');
