@@ -23,3 +23,11 @@
 - **Payload Enrichment:** Implemented "Fail-Safe" mapping in `GET /api/archive/lore` to prioritize metadata (`identity` > `tactical`) and fallback to defaults, eliminating "Blue UI" and "No Description" errors.
 - **Identity:** Created `migrations_admin_elevation.sql` to elevate `admin@maximost.com` to Architect/Admin role for full console access.
 - **Resilience:** Implemented "Standby Mode" in Neural Core (AI Middleware) to prevent crashes during initialization failure.
+
+### [Cyrus] Neural Archive & Root Identity
+**Status:** Executed
+**Impact:**
+- **Infrastructure:** Created `user_memories` table ("Neural Bricks") to unify Vault and Coach storage.
+- **Identity:** Elevated `admin@maximost.com` to `ROOT_ADMIN` via `migrations_neural_overhaul.sql` to unlock full console capabilities.
+- **Integration:** Mounted `/api/memories` and updated AI middleware to ingest Neural Archive context (`[CATEGORY] Content`).
+- **Resilience:** Refactored AI Airlock to return `standby` status for non-privileged users instead of crashing.
