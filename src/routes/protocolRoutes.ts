@@ -151,6 +151,8 @@ app.post('/deploy', async (c) => {
             frequency: h.frequency || 'daily',
             icon: h.metadata?.visuals?.icon || h.icon,
             theme: h.metadata?.visuals?.theme || h.theme,
+            color: h.color || h.metadata?.visuals?.color,
+            metadata: h.metadata,
             why_instruction: h.metadata?.compiler?.why,
             how_instruction: h.metadata?.compiler?.step,
             // Link Logic
