@@ -19,12 +19,20 @@ async function ingestHabits() {
     const habitsPath = path.resolve(__dirname, '../config/seeds/habits_master.json');
     const habitsData = JSON.parse(fs.readFileSync(habitsPath, 'utf-8'));
 
+    const protocolsPath = path.resolve(__dirname, '../config/seeds/protocols_master.json');
+    const protocolsData = JSON.parse(fs.readFileSync(protocolsPath, 'utf-8'));
+
+    // Identify Quick Start Habits
+    const quickStart = protocolsData.find((p: any) => p.name === 'Quick Start');
+    const startingFiveSlugs = quickStart ? quickStart.habits : [];
+
     console.log(`Ingesting ${habitsData.length} habits...`);
 
-    // Map description from metadata if missing
+    // Map description from metadata if missing AND set is_starting_5
     const mappedHabits = habitsData.map((h: any) => ({
         ...h,
-        description: h.description || h.metadata?.compiler?.why || h.metadata?.compiler?.atom || 'No description available.'
+        description: h.description || h.metadata?.compiler?.why || h.metadata?.compiler?.atom || 'No description available.',
+        is_starting_5: startingFiveSlugs.includes(h.slug)
     }));
 
     const { error } = await supabase
