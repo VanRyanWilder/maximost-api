@@ -120,7 +120,7 @@ app.post('/deploy', async (c) => {
     }
 
     // 4. Prepare User Habits
-    // Map library habits to user habits
+    // Map library habits to user habits (The Identity Bridge)
     const userHabits = libraryHabits.map(h => ({
         user_id: user.id,
         // v12 Schema Mapping: title is primary, fallback to name.
@@ -128,12 +128,16 @@ app.post('/deploy', async (c) => {
         // library_habits.description is the Layman Hook.
         description: h.description,
         slug: h.slug,
-        type: h.type || 'checkbox',
+        // Map v12 type to Schema ENUM
+        type: (h.type === 'metric' || h.type === 'duration') ? 'unit' : 'absolute',
         target_value: h.target_value || 1,
         frequency: h.frequency || 'daily',
-        // v12 Metadata Mapping
+        unit: h.unit,
+        // v12 Metadata Mapping (Visuals & Compiler)
         icon: h.metadata?.visuals?.icon || h.icon,
-        theme: h.metadata?.visuals?.theme || h.theme
+        theme: h.metadata?.visuals?.theme || h.theme,
+        why_instruction: h.metadata?.compiler?.why,
+        how_instruction: h.metadata?.compiler?.step
     }));
 
     // 5. Insert/Upsert into habits

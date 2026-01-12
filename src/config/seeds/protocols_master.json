@@ -1,5 +1,5 @@
 [
-  { "name": "Atlas Golden Set", "expert_voice": "Founder", "theme_override": "maxi_blue", "description": "The foundation for Rig stability.", "habits": ["morning_sun", "deep_work", "daily_steps", "shadow_audit", "digital_sunset"] },
+  { "name": "Quick Start", "expert_voice": "System", "theme_override": "slate_steel", "description": "Deploys 5 starter habits to your Dashboard. These can be edited or deleted at any point.", "habits": ["morning_sun", "deep_work", "daily_steps", "shadow_audit", "digital_sunset"] },
   { "name": "Neuro-Rig Stack", "expert_voice": "Andrew Huberman", "theme_override": "oxygen_cyan", "description": "Biological hardware optimization.", "habits": ["morning_sun", "cold_plunge", "nsdr_reset", "digital_sunset", "sleep_cocktail"] },
   { "name": "Iron Mind", "expert_voice": "David Goggins", "theme_override": "combat_red", "description": "Callous the mind through suffering.", "habits": ["accountability_mirror", "heavy_lifting", "taking_souls", "cookie_jar", "forty_percent"] },
   { "name": "Discipline Stack", "expert_voice": "Jocko Willink", "theme_override": "slate_steel", "description": "The military standard for daily execution.", "habits": ["make_bed", "deep_work", "shadow_audit", "glycemic_defense"] },

@@ -79,7 +79,8 @@ habitRoutes.post('/adopt', async (c) => {
             icon: libHabit.metadata?.visuals?.icon || libHabit.icon,
             how_instruction: libHabit.metadata?.compiler?.step,
             why_instruction: libHabit.metadata?.compiler?.why,
-            type: libHabit.type || 'checkbox',
+            // Map v12 type to Schema ENUM
+            type: (libHabit.type === 'metric' || libHabit.type === 'duration') ? 'unit' : 'absolute',
             target_value: libHabit.target_value || 1,
             unit: libHabit.unit
         });
