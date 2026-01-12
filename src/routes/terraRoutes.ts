@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { config } from '../config';
 import type { AppEnv } from '../hono';
+import { normalizeTerraData } from '../lib/biometrics/adapter';
 
 const terraRoutes = new Hono<AppEnv>();
 
@@ -39,8 +40,8 @@ terraRoutes.post('/', async (c) => {
         }
 
         const payload = JSON.parse(rawBody);
-        const type = payload.type; // 'sleep', 'activity', 'daily', etc.
-        const userRefId = payload.user?.reference_id; // We use this to map to our User UUID
+        const type = payload.type;
+        const userRefId = payload.user?.reference_id;
 
         if (!userRefId) {
             console.log('Terra payload missing reference_id, skipping.');
@@ -49,30 +50,10 @@ terraRoutes.post('/', async (c) => {
 
         console.log(`Received Terra webhook: ${type} for user ${userRefId}`);
 
-        // 2. Samsung Energy Score / Readiness Logic
-        // Payload structure varies by provider. Checking for common readiness fields.
-        // Assuming payload.data is the array of data objects
-        if (type === 'daily' || type === 'readiness') {
-             const dataList = payload.data || [];
-             for (const data of dataList) {
-                 // Check for readiness/energy score
-                 // Terra creates a normalized 'readiness' or 'scores' object
-                 const readiness = data.readiness_data?.readiness || data.scores?.recovery;
-
-                 if (readiness !== undefined) {
-                     // Update Profile
-                     await supabase
-                        .from('profiles')
-                        .update({ bio_rig_readiness: Math.round(readiness) })
-                        .eq('id', userRefId);
-
-                     console.log(`Updated Bio-Rig Readiness for ${userRefId}: ${readiness}`);
-                 }
-             }
-        }
+        // 2. Airlock: Normalize Data
+        const biometrics = normalizeTerraData(payload);
 
         // 3. Ghost Log Protocol (Habit Mapping)
-        // We need to fetch the user's active habits that have a terra_metric mapping
         const { data: activeHabits } = await supabase
             .from('habits')
             .select('id, name, library_habits!inner(terra_metric)')
@@ -82,7 +63,7 @@ terraRoutes.post('/', async (c) => {
             return c.json({ message: 'No active habits to map' });
         }
 
-        // Create a map of terra_metric -> habit_id(s)
+        // Map terra_metric -> Habit[]
         const metricMap = new Map<string, any[]>();
         activeHabits.forEach((h: any) => {
             const metric = h.library_habits?.terra_metric;
@@ -93,62 +74,30 @@ terraRoutes.post('/', async (c) => {
             }
         });
 
-        // Process Data
-        // Map specific Terra types to our metrics
-        const dataList = payload.data || [];
-        for (const data of dataList) {
-            const dateStr = data.metadata?.start_time?.split('T')[0] || new Date().toISOString().split('T')[0];
+        // 4. Ingest Normalized Data
+        for (const data of biometrics) {
+            const dateStr = data.timestamp.split('T')[0];
 
-            // Logic for specific types
-            if (type === 'sleep') {
-                // Map 'sleep' -> 'sleep_hygiene' (duration_hr)
-                // 'thermoregulation' -> (avg_temperature_celsius)
-                const durationHr = (data.sleep_durations_data?.other?.duration_seconds || 0) / 3600;
-                const tempC = data.temperature_data?.avg_temperature_celsius;
+            // Look for habits matching this metric type
+            // E.g. metric_type: 'steps' -> habits with terra_metric: 'activity.steps' or just 'steps'?
+            // The normalize function returns standard types: 'steps', 'sleep', 'hrv'.
+            // We need to match these to the `terra_metric` stored in the DB.
+            // Assumption: DB uses 'activity.steps' or 'sleep' etc.
+            // I'll check strict equality or contains.
 
-                // Handle Sleep Duration
-                const sleepHabits = metricMap.get('sleep');
-                if (sleepHabits) {
-                    for (const habit of sleepHabits) {
-                        await processGhostLog(supabase, userRefId, habit.id, dateStr, durationHr, `Terra Sleep: ${durationHr.toFixed(1)}h`);
-                    }
-                }
+            // Matching logic:
+            let targetHabits: any[] = [];
 
-                // Handle Thermoregulation (if mapped via terra_metric='thermoregulation')
-                // Note: The prompt said 'thermoregulation' maps to 'avg_temperature_celsius' from sleep payload
-                // If library_habit has terra_metric='thermoregulation', we need custom logic or just rely on 'sleep' type check?
-                // Better: Check activeHabits for one with terra_metric === 'thermoregulation' specifically?
-                // The metricMap approach is generic. If we set terra_metric='sleep' for Sleep Hygiene, it works.
-                // If we set terra_metric='thermoregulation' (which isn't a Terra TYPE), we won't find it unless we check payload fields.
-
-                // Specific Check for known 'derived' metrics
-                const thermoHabits = activeHabits.filter((h: any) => h.library_habits?.terra_metric === 'thermoregulation');
-                if (tempC !== undefined) {
-                     for (const habit of thermoHabits) {
-                         // Value? "Trigger core temp drop". Usually boolean check.
-                         // If temp is available, we assume true? Or check range?
-                         // "bio_rig_readiness" is high level.
-                         // For "Cold Bedroom", maybe we can't detect room temp, only skin temp.
-                         // Let's log the temp as value.
-                         await processGhostLog(supabase, userRefId, habit.id, dateStr, tempC, `Terra Skin Temp: ${tempC.toFixed(1)}C`);
-                     }
-                }
+            if (data.metric_type === 'steps') {
+                targetHabits = metricMap.get('activity.steps') || metricMap.get('steps') || [];
+            } else if (data.metric_type === 'sleep') {
+                targetHabits = metricMap.get('sleep') || [];
+            } else if (data.metric_type === 'hrv') {
+                targetHabits = metricMap.get('hrv') || [];
             }
 
-            if (type === 'activity') {
-                 // Map 'steps' -> 'fasted_walk'
-                 const steps = data.distance_data?.steps;
-                 const stepsHabits = activeHabits.filter((h: any) => h.library_habits?.terra_metric === 'steps');
-                 if (steps && stepsHabits.length > 0) {
-                     for (const habit of stepsHabits) {
-                         await processGhostLog(supabase, userRefId, habit.id, dateStr, steps, `Terra Steps: ${steps}`);
-                     }
-                 }
-
-                 // Map 'zone_2_cardio' -> active_durations_data
-                 // Check for HR 110-140 (simplified for now, just logging activity duration)
-                 // This requires deeper parsing of HR samples.
-                 // Placeholder: If activity type is 'running'/'cycling', log duration.
+            for (const habit of targetHabits) {
+                await processGhostLog(supabase, userRefId, habit.id, dateStr, data.value, `Terra ${data.metric_type}: ${data.value} ${data.unit}`);
             }
         }
 

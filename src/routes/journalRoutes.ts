@@ -23,9 +23,11 @@ journalRoutes.get('/', async (c) => {
 // POST /api/journal - Create a new journal entry for the logged-in user
 journalRoutes.post('/', async (c) => {
     const user = c.get('user');
-    const { date, content, mood, tags } = await c.req.json();
-    if (!content) {
-        return c.json({ error: 'Journal entry content is required' }, 400);
+    const { date, content, mood, tags, encrypted_blob, iv } = await c.req.json();
+
+    // Support Zero-Knowledge: Allow encrypted_blob OR content
+    if (!content && !encrypted_blob) {
+        return c.json({ error: 'Journal entry content or encrypted blob is required' }, 400);
     }
 
     const supabase = c.get('supabase');

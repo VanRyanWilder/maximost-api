@@ -6,6 +6,7 @@ import { config } from '../config';
 import { fetchUserContext } from '../lib/orchestrator';
 import { NEURAL_CORE_INSTRUCTIONS } from '../lib/neuralCore';
 import { calculateConsistencyIndex } from '../lib/telemetry';
+import { evaluatePatterns } from '../lib/staticBrain';
 
 const aiRoutes = new Hono<AppEnv>();
 
@@ -96,14 +97,33 @@ aiRoutes.post('/chat', async (c) => {
             })
             .eq('id', user.id);
 
-        // 1. Fetch Context (Orchestrator)
-        const context = await fetchUserContext(user.id, supabase);
+        // 1. Logic Gate: Admin vs Standard (Static Brain)
+        // "Admin Logic: Set up the logic gate that allows ONLY admin-tier users to trigger live AI reasoning"
+        // Also allow 'sovereign' or 'architect'? Prompt says "ONLY admin-tier".
+        // I will stick to the user's strict instruction: "ONLY admin-tier".
+        // But maybe 'architect' counts?
+        // Let's check user role.
+        const isAdmin = user.profile.role === 'admin';
 
-        // 2. Fetch Additional Neural Data
-        // - Consistency Index (7 days)
+        if (!isAdmin) {
+            // Static Brain (Zero-Credit)
+            // Check for deterministic interventions
+            const intervention = await evaluatePatterns(user.id, supabase);
+
+            if (intervention) {
+                return c.json({ response: intervention, mode: 'static' }); // Return JSON directly, not stream
+            } else {
+                // If no intervention, maybe generic response or limited AI?
+                // "while standard users hit the 'Static Brain' cached responses."
+                // I'll return a generic "Systems Nominal" if no pattern triggered.
+                return c.json({ response: "Systems Nominal. Log your data to unlock higher resolution insights.", mode: 'static' });
+            }
+        }
+
+        // 2. Live AI Reasoning (Admin Only)
+        const context = await fetchUserContext(user.id, supabase);
         const consistencyIndex = await calculateConsistencyIndex(user.id, 7, supabase);
 
-        // - User's Custom Neural Config
         const { data: profile } = await supabase
             .from('profiles')
             .select('neural_config')
@@ -112,7 +132,6 @@ aiRoutes.post('/chat', async (c) => {
 
         const customContext = profile?.neural_config?.context || '';
 
-        // 3. Construct Prompt with Neural Core + Data
         const systemInstruction = `${NEURAL_CORE_INSTRUCTIONS}
 
         CURRENT STATUS:
@@ -129,10 +148,7 @@ aiRoutes.post('/chat', async (c) => {
         USER MESSAGE:
         ${message}`;
 
-        // Upgrade to Gemini 2.0 Flash
         const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
-        // 4. Stream Response
         const result = await model.generateContentStream(systemInstruction);
 
         return streamText(c, async (stream) => {

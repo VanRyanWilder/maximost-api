@@ -17,6 +17,8 @@ import logRoutes from './routes/logRoutes';
 import reorderRoutes from './routes/reorderRoutes';
 import terraRoutes from './routes/terraRoutes';
 import webhookRoutes from './routes/webhookRoutes';
+import scholarshipRoutes from './routes/scholarshipRoutes';
+import importRoutes from './routes/importRoutes';
 
 import { calculateConsistencyIndex } from './lib/telemetry';
 import { calculateDrift } from './lib/shadowAudit';
@@ -167,6 +169,8 @@ app.route('/api/habit_logs', logRoutes);
 app.route('/api/reorder', reorderRoutes);
 app.route('/api/webhooks', webhookRoutes);
 app.route('/api/webhooks/terra', terraRoutes);
+app.route('/api/scholarship', scholarshipRoutes);
+app.route('/api/import', importRoutes);
 
 // Telemetry Endpoint: Uptime
 app.get('/api/telemetry/uptime', async (c) => {
