@@ -83,6 +83,8 @@ habitRoutes.post('/adopt', async (c) => {
             slug: libHabit.slug,
             theme: libHabit.metadata?.visuals?.theme || libHabit.theme,
             icon: libHabit.metadata?.visuals?.icon || libHabit.icon,
+            color: libHabit.color || libHabit.metadata?.visuals?.color,
+            metadata: libHabit.metadata,
             how_instruction: libHabit.metadata?.compiler?.step,
             why_instruction: libHabit.metadata?.compiler?.why,
             // Map v12 type to Schema ENUM
