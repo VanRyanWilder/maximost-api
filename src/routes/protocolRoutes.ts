@@ -42,9 +42,9 @@ app.post('/ingest', async (c) => {
         return c.json({ error: 'Failed to ingest habits', details: habitsError }, 500);
     }
 
-    // 5. Upsert Protocols
+    // 5. Upsert Protocols (Consolidated Table)
     const { error: protocolsError } = await adminSupabase
-        .from('library_protocols')
+        .from('protocol_stacks')
         .upsert(protocols, { onConflict: 'stack_id' });
 
     if (protocolsError) {
@@ -63,9 +63,9 @@ app.post('/deploy', async (c) => {
 
     if (!protocolId) return c.json({ error: 'Protocol ID required' }, 400);
 
-    // 1. Fetch Protocol Data
+    // 1. Fetch Protocol Data (Consolidated Table)
     const { data: protocol, error: fetchError } = await supabase
-        .from('library_protocols')
+        .from('protocol_stacks')
         .select('*')
         .eq('stack_id', protocolId)
         .single();

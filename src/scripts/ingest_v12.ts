@@ -59,22 +59,14 @@ async function ingestProtocols() {
         // But `protocolRoutes` used `library_protocols`.
     }));
 
+    // Target `protocol_stacks` as the master table
     const { error } = await supabase
-        .from('library_protocols')
+        .from('protocol_stacks')
         .upsert(mappedProtocols, { onConflict: 'stack_id' });
 
     if (error) {
-        console.error('Error ingesting protocols:', error);
-        // Fallback: maybe table is `protocol_stacks`?
-        console.log("Retrying with 'protocol_stacks' table...");
-        const { error: error2 } = await supabase
-            .from('protocol_stacks')
-            .upsert(mappedProtocols, { onConflict: 'stack_id' });
-
-        if (error2) {
-             console.error('Error ingesting protocols (fallback):', error2);
-             process.exit(1);
-        }
+        console.error('Error ingesting protocols to protocol_stacks:', error);
+        process.exit(1);
     }
     console.log('Protocols ingestion successful.');
 }
