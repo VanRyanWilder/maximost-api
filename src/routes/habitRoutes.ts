@@ -17,7 +17,13 @@ habitRoutes.get('/', async (c) => {
     return c.json({ error: 'Failed to fetch habits' }, 500);
   }
 
-  return c.json(data);
+  // Handshake Bridge: Ensure frontend receives 'is_absolute' derived from 'type'
+  const enrichedData = data.map((h: any) => ({
+      ...h,
+      is_absolute: h.type === 'absolute'
+  }));
+
+  return c.json(enrichedData);
 });
 
 // POST /api/habbits - Create a new habit for the logged-in user

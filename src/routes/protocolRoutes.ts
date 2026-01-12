@@ -119,51 +119,56 @@ app.post('/deploy', async (c) => {
         return c.json({ error: 'Failed to fetch library habits' }, 500);
     }
 
-    // 4. Prepare User Habits
-    // Map library habits to user habits (The Identity Bridge)
-    const userHabits = libraryHabits.map(h => ({
-        user_id: user.id,
-        // v12 Schema Mapping: title is primary, fallback to name.
-        name: h.title || h.name,
-        // library_habits.description is the Layman Hook.
-        description: h.description,
-        slug: h.slug,
-        // Map v12 type to Schema ENUM
-        type: (h.type === 'metric' || h.type === 'duration') ? 'unit' : 'absolute',
-        target_value: h.target_value || 1,
-        frequency: h.frequency || 'daily',
-        unit: h.unit,
-        // v12 Metadata Mapping (Visuals & Compiler)
-        icon: h.metadata?.visuals?.icon || h.icon,
-        theme: h.metadata?.visuals?.theme || h.theme,
-        why_instruction: h.metadata?.compiler?.why,
-        how_instruction: h.metadata?.compiler?.step
-    }));
+    // 4. Link Logic: Check for existing habits to Append vs Insert
+    const { data: existingHabits } = await supabase
+        .from('habits')
+        .select('slug, linked_stacks')
+        .eq('user_id', user.id)
+        .in('slug', habitSlugs);
 
-    // 5. Insert/Upsert into habits
-    // We use upsert on (user_id, slug)? or just insert?
-    // If user already has it, do we overwrite? "Deploy... copies...".
-    // Usually we want to avoid duplicates.
-    // Let's use upsert based on a unique key if possible, or check existence.
-    // Habits usually don't have a unique constraint on (user_id, slug) unless enforced.
-    // Let's assume we want to Upsert based on slug if it exists in schema, otherwise we might duplicate.
-    // Best effort: Upsert on slug if possible.
+    const existingMap = new Map(existingHabits?.map(h => [h.slug, h]));
+    const protocolName = protocol.title;
 
-    // Since we don't know the exact unique constraint on 'habits' table (maybe just id?),
-    // we'll try to UPSERT if there is a conflict key, or just INSERT and risk duplicates if schema allows.
-    // Standard approach: Check for existing slugs for this user?
+    const upsertPayload = libraryHabits.map(h => {
+        const existing = existingMap.get(h.slug);
+        let linkedStacks = existing?.linked_stacks || [];
 
+        // Append protocol if not present
+        if (!linkedStacks.includes(protocolName)) {
+            linkedStacks.push(protocolName);
+        }
+
+        return {
+            user_id: user.id,
+            // v12 Schema Mapping
+            name: h.title || h.name,
+            description: h.description,
+            slug: h.slug,
+            type: (h.type === 'metric' || h.type === 'duration') ? 'unit' : 'absolute',
+            // Data Hydration: Ensure target_value is pulled from library
+            target_value: h.target_value || 1,
+            unit: h.unit,
+            frequency: h.frequency || 'daily',
+            icon: h.metadata?.visuals?.icon || h.icon,
+            theme: h.metadata?.visuals?.theme || h.theme,
+            why_instruction: h.metadata?.compiler?.why,
+            how_instruction: h.metadata?.compiler?.step,
+            // Link Logic
+            linked_stacks: linkedStacks
+        };
+    });
+
+    // 5. Upsert with Link Logic
     const { error: deployError } = await supabase
         .from('habits')
-        .upsert(userHabits, { onConflict: 'user_id, slug' as any }); // aggressive assumption on constraint
+        .upsert(upsertPayload, { onConflict: 'user_id, slug' as any });
 
     if (deployError) {
-        // Fallback if unique constraint isn't on slug
         console.error('Deploy Error (Upsert):', deployError);
         return c.json({ error: 'Failed to deploy protocol habits', details: deployError }, 500);
     }
 
-    return c.json({ message: `Protocol ${protocol.title} deployed successfully`, count: userHabits.length });
+    return c.json({ message: `Protocol ${protocol.title} deployed successfully`, count: upsertPayload.length });
 });
 
 export default app;
