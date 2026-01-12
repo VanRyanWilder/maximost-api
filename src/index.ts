@@ -243,7 +243,19 @@ app.get('/api/archive/lore', async (c) => {
         .limit(100);
 
     if (error) return c.json({ error: 'Failed to fetch lore' }, 500);
-    return c.json(data);
+
+    // Payload Polyfill: Ensure frontend receives explicit color/icon/description
+    const enrichedData = data.map((h: any) => ({
+        ...h,
+        // Fail-Safe: Top-Level -> Metadata -> Default
+        color: h.color || h.metadata?.visuals?.color || '#3B82F6',
+        icon: h.icon || h.metadata?.visuals?.icon || 'help-circle',
+        description: h.description || h.metadata?.identity || h.metadata?.tactical || h.metadata?.compiler?.why || 'No description available.',
+        // Ensure metadata is passed through for deep inspection
+        metadata: h.metadata || {}
+    }));
+
+    return c.json(enrichedData);
 });
 
 

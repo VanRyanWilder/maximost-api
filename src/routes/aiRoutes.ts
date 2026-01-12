@@ -55,7 +55,13 @@ aiRoutes.post('/chat', async (c) => {
              return c.json({ error: "Invalid request body. 'message' is required." }, 400);
         }
 
-        // 0. Usage Guardrails
+        // 0. Graceful Recovery (Standby Mode)
+        // If system is unstable or initializing, return standby instead of crash
+        if (config.GEMINI_API_KEY === 'undefined' || !config.GEMINI_API_KEY) {
+             return c.json({ status: "standby", message: "Neural Core: Awaiting Initialization" });
+        }
+
+        // 0.5 Usage Guardrails
         // Fetch current usage
         const { data: usageProfile } = await supabase
             .from('profiles')

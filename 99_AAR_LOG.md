@@ -16,3 +16,10 @@
 **Impact:**
 - **Identity:** Updated `ADMIN_EMAIL` default and Admin Bypass Mock to `admin@maximost.com` to eliminate "Ghost Sessions" and data wiping.
 - **Archive Repair:** Refined schema healing to explicitly restore `library_habits.id` (UUID), backfill nulls, and ensure it functions as the Primary Key for frontend compatibility.
+
+### [Cyrus] Lore Polyfill & Admin Elevation
+**Status:** Executed
+**Impact:**
+- **Payload Enrichment:** Implemented "Fail-Safe" mapping in `GET /api/archive/lore` to prioritize metadata (`identity` > `tactical`) and fallback to defaults, eliminating "Blue UI" and "No Description" errors.
+- **Identity:** Created `migrations_admin_elevation.sql` to elevate `admin@maximost.com` to Architect/Admin role for full console access.
+- **Resilience:** Implemented "Standby Mode" in Neural Core (AI Middleware) to prevent crashes during initialization failure.
