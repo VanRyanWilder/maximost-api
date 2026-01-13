@@ -11,7 +11,9 @@ adminRoutes.use('*', async (c, next) => {
     const user = c.get('user') as EnrichedUser; // Use enriched user context
 
     // Check role from enriched context (populated by index.ts middleware)
-    if (user.profile.role !== 'admin') {
+    // Allow 'ROOT_ADMIN' to bypass checks
+    const role = user.profile.role;
+    if (role !== 'admin' && role !== 'ROOT_ADMIN') {
         return c.json({ error: 'Access Denied: Admin Sovereignty Required' }, 403);
     }
 
