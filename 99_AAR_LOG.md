@@ -31,3 +31,9 @@
 - **Identity:** Elevated `admin@maximost.com` to `ROOT_ADMIN` via `migrations_neural_overhaul.sql` to unlock full console capabilities.
 - **Integration:** Mounted `/api/memories` and updated AI middleware to ingest Neural Archive context (`[CATEGORY] Content`).
 - **Resilience:** Refactored AI Airlock to return `standby` status for non-privileged users instead of crashing.
+
+### [Cyrus] Final Inch Restoration
+**Status:** Executed
+**Impact:**
+- **Payload Enrichment:** explicitly hoisted `tactical` and `identity` fields in `GET /api/archive/lore` to resolve frontend blindness.
+- **Schema Healing:** Added legacy backfill logic to `migrations_schema_healing.sql` to sync `how/why` columns into `metadata` if missing.

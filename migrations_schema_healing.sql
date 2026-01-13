@@ -47,6 +47,21 @@ ALTER TABLE public.library_habits ADD COLUMN IF NOT EXISTS color TEXT;
 -- Ensure metadata exists (v12 requirement)
 ALTER TABLE public.library_habits ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;
 
+-- C. Legacy DNA Sync (The Final Inch)
+-- If metadata is empty, try to backfill from legacy instruction columns
+UPDATE public.library_habits
+SET metadata = jsonb_set(
+    jsonb_set(
+        coalesce(metadata, '{}'::jsonb),
+        '{tactical}',
+        to_jsonb(coalesce(how_instruction, 'Execute protocol.'))
+    ),
+    '{identity}',
+    to_jsonb(coalesce(why_instruction, description, 'Forge your sovereign path.'))
+)
+WHERE (metadata IS NULL OR metadata = '{}'::jsonb)
+AND (how_instruction IS NOT NULL OR why_instruction IS NOT NULL OR description IS NOT NULL);
+
 -- 2. User Habits (The Active Rig)
 -- Adding color and metadata to support "Blank Motivation" fix and UI theming
 ALTER TABLE public.habits ADD COLUMN IF NOT EXISTS color TEXT;

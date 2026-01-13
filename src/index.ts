@@ -253,6 +253,11 @@ app.get('/api/archive/lore', async (c) => {
         color: h.color || h.metadata?.visuals?.color || '#3B82F6',
         icon: h.icon || h.metadata?.visuals?.icon || 'help-circle',
         description: h.description || h.metadata?.identity || h.metadata?.tactical || h.metadata?.compiler?.why || 'No description available.',
+
+        // Hoist Tactical/Identity (How/Why) explicitly for Vance's HUD
+        tactical: h.metadata?.tactical || h.metadata?.compiler?.step || h.how_instruction || 'Execute the protocol.',
+        identity: h.metadata?.identity || h.metadata?.compiler?.why || h.why_instruction || 'Forge your sovereign path.',
+
         // Ensure metadata is passed through for deep inspection
         metadata: h.metadata || {}
     }));
