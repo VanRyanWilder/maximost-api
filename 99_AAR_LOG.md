@@ -57,3 +57,10 @@
 **Impact:**
 - **RLS Unlocked:** Dropped restrictive policies and enabled `FOR ALL` (Insert/Update/Delete) for `habits`, `habit_logs`, `user_memories`, and `journal_entries` to fix "Persistence Blockade".
 - **Schema Cache:** Added `callsign` to profiles to complete the Identity Triad and resolve cache errors.
+
+### [Cyrus] Final Hydration & Persistence Reinforcement
+**Status:** Executed
+**Impact:**
+- **Metadata Master Load:** Generated `migrations_metadata_master_load.sql` from seed data to perform a deep update of all 42 habits, populating `metadata.tactical` and `metadata.identity` and ensuring HUDs are never empty.
+- **Adopt Logic:** Updated `POST /adopt` to explicitly persist `target_value`, `unit`, and `frequency` to user habits, ensuring settings survive database refreshes.
+- **Reinforced RLS:** Re-applied `FOR ALL` policies via `migrations_persistence_reinforcement.sql` as a safety net.
