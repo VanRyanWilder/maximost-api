@@ -73,6 +73,18 @@ aiRoutes.post('/chat', async (c) => {
         const currentPeriod = usageProfile?.ai_usage_period; // Assuming date string
         const tier = usageProfile?.membership_tier;
 
+        // Graceful Token Gating (Airlock)
+        // If user is NOT admin/sovereign/architect and has hit 0 tokens (conceptually), return Standby
+        // For MVP, if usage > 500 and NOT Root Admin, we standby.
+        // Or if standard user tries to access live AI.
+        const isAdmin = user.profile.role === 'admin' || user.profile.role === 'ROOT_ADMIN';
+        const isSovereign = ['sovereign', 'architect', 'vanguard'].includes(tier);
+
+        // If not privileged, return Standby immediately (Airlock)
+        if (!isAdmin && !isSovereign) {
+             return c.json({ status: "standby", message: "Neural Core: Awaiting Token Initialization" });
+        }
+
         // Reset if new month (Simple logic: check if currentPeriod is same month/year as now)
         // If Period is null, set to now.
         const now = new Date();
@@ -104,13 +116,7 @@ aiRoutes.post('/chat', async (c) => {
             .eq('id', user.id);
 
         // 1. Logic Gate: Admin vs Standard (Static Brain)
-        // "Admin Logic: Set up the logic gate that allows ONLY admin-tier users to trigger live AI reasoning"
-        // Also allow 'sovereign' or 'architect'? Prompt says "ONLY admin-tier".
-        // I will stick to the user's strict instruction: "ONLY admin-tier".
-        // But maybe 'architect' counts?
-        // Let's check user role.
-        const isAdmin = user.profile.role === 'admin';
-
+        // Check already performed via isAdmin variable above
         if (!isAdmin) {
             // Static Brain (Zero-Credit)
             // Check for deterministic interventions
@@ -130,6 +136,16 @@ aiRoutes.post('/chat', async (c) => {
         const context = await fetchUserContext(user.id, supabase);
         const consistencyIndex = await calculateConsistencyIndex(user.id, 7, supabase);
 
+        // Fetch Neural Archive (Memory Bricks)
+        const { data: memories } = await supabase
+            .from('user_memories')
+            .select('content, category, metadata')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(10); // Last 10 bricks
+
+        const memoryContext = memories?.map((m: any) => `[${m.category.toUpperCase()}] ${m.content}`).join('\n') || 'No archived memories.';
+
         const { data: profile } = await supabase
             .from('profiles')
             .select('neural_config')
@@ -139,6 +155,9 @@ aiRoutes.post('/chat', async (c) => {
         const customContext = profile?.neural_config?.context || '';
 
         const systemInstruction = `${NEURAL_CORE_INSTRUCTIONS}
+
+        NEURAL ARCHIVE (VAULT):
+        ${memoryContext}
 
         CURRENT STATUS:
         Persona: ${persona || 'The Watchman'}

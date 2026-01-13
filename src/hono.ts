@@ -2,7 +2,7 @@ import { SupabaseClient, User } from '@supabase/supabase-js';
 
 export interface EnrichedUser extends User {
   profile: {
-    role: 'user' | 'admin';
+    role: 'user' | 'admin' | 'ROOT_ADMIN';
     membership_tier: 'initiate' | 'operator' | 'sovereign' | 'architect' | 'vanguard';
     neural_config?: any;
   };
