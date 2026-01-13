@@ -51,3 +51,9 @@
 - **Protocol Themes:** Added `master_theme` to protocol tables and hoisted it in `GET /api/protocols`.
 - **Admin Guard:** Updated middleware to grant `ROOT_ADMIN` absolute bypass authority.
 - **Lore Enrichment:** Hoisted `target_value`, `unit`, `frequency`, `type` in `GET /api/archive/lore` for complete HUD hydration.
+
+### [Cyrus] Persistence Repair & Schema Expansion
+**Status:** Executed
+**Impact:**
+- **RLS Unlocked:** Dropped restrictive policies and enabled `FOR ALL` (Insert/Update/Delete) for `habits`, `habit_logs`, `user_memories`, and `journal_entries` to fix "Persistence Blockade".
+- **Schema Cache:** Added `callsign` to profiles to complete the Identity Triad and resolve cache errors.
