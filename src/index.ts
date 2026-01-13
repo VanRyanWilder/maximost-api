@@ -259,6 +259,12 @@ app.get('/api/archive/lore', async (c) => {
         tactical: h.metadata?.tactical || h.metadata?.compiler?.step || h.how_instruction || 'Execute the protocol.',
         identity: h.metadata?.identity || h.metadata?.compiler?.why || h.why_instruction || 'Forge your sovereign path.',
 
+        // Hoist Target/Unit/Freq/Type for Vance's HUD
+        target_value: h.target_value || h.metadata?.target_value || 1,
+        unit: h.unit || h.metadata?.unit || 'reps',
+        frequency: h.frequency || h.metadata?.frequency || 'daily',
+        type: h.type || h.metadata?.type || 'absolute',
+
         // Ensure metadata is passed through for deep inspection
         metadata: h.metadata || {}
     }));

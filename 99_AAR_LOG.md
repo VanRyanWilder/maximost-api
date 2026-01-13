@@ -43,3 +43,11 @@
 **Action:**
 - **Cache Clear:** Purged build artifacts (`dist/`) and npm cache.
 - **Readiness:** System verified clean and ready for production deployment.
+
+### [Cyrus] Unified Skeleton & Profile Schema
+**Status:** Executed
+**Impact:**
+- **Schema Cache:** Created `migrations_profile_schema.sql` to add `full_name`, `display_name`, `avatar_url` to profiles, fixing HUD errors.
+- **Protocol Themes:** Added `master_theme` to protocol tables and hoisted it in `GET /api/protocols`.
+- **Admin Guard:** Updated middleware to grant `ROOT_ADMIN` absolute bypass authority.
+- **Lore Enrichment:** Hoisted `target_value`, `unit`, `frequency`, `type` in `GET /api/archive/lore` for complete HUD hydration.

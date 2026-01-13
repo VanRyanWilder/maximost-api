@@ -5,11 +5,30 @@ import { createClient } from '@supabase/supabase-js';
 
 const app = new Hono<AppEnv>();
 
+// GET /api/protocols - Fetch all protocols with master_theme hoisted
+app.get('/', async (c) => {
+    const supabase = c.get('supabase');
+    const { data, error } = await supabase
+        .from('protocol_stacks')
+        .select('*');
+
+    if (error) {
+        console.error('Error fetching protocols:', error);
+        return c.json({ error: 'Failed to fetch protocols' }, 500);
+    }
+
+    // Hoist master_theme from row (already selected via *) or fallback if necessary
+    // In migration, we added master_theme column, so select('*') grabs it.
+    // We can add a fallback if we want to read from legacy fields, but protocol_stacks is a new table.
+
+    return c.json(data);
+});
+
 // POST /ingest: Admin Only. Upserts library data.
 app.post('/ingest', async (c) => {
     // 1. Verify Role
     const user = c.get('user');
-    if (user.profile.role !== 'admin') {
+    if (user.profile.role !== 'admin' && user.profile.role !== 'ROOT_ADMIN') {
         return c.json({ error: 'Forbidden: Admin Access Required' }, 403);
     }
 
