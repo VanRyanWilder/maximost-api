@@ -252,7 +252,8 @@ app.get('/api/archive/lore', async (c) => {
         // Fail-Safe: Top-Level -> Metadata -> Default
         color: h.color || h.metadata?.visuals?.color || '#3B82F6',
         icon: h.icon || h.metadata?.visuals?.icon || 'help-circle',
-        description: h.description || h.metadata?.identity || h.metadata?.tactical || h.metadata?.compiler?.why || 'No description available.',
+        // Precedence Swap: Metadata > Description Column (to avoid "No description available" placeholders)
+        description: h.metadata?.identity || h.metadata?.tactical || h.metadata?.compiler?.why || h.description || 'No description available.',
 
         // Hoist Tactical/Identity (How/Why) explicitly for Vance's HUD
         tactical: h.metadata?.tactical || h.metadata?.compiler?.step || h.how_instruction || 'Execute the protocol.',
