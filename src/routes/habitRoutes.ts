@@ -90,7 +90,9 @@ habitRoutes.post('/adopt', async (c) => {
             // Map v12 type to Schema ENUM
             type: (libHabit.type === 'metric' || libHabit.type === 'duration') ? 'unit' : 'absolute',
             target_value: libHabit.target_value || 1,
-            unit: libHabit.unit
+            unit: libHabit.unit,
+            // Explicitly copy frequency if it exists (for non-absolute habits)
+            frequency: libHabit.frequency || 'daily'
         });
 
     if (insertError) {
