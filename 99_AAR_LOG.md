@@ -37,3 +37,9 @@
 **Impact:**
 - **Payload Enrichment:** explicitly hoisted `tactical` and `identity` fields in `GET /api/archive/lore` to resolve frontend blindness.
 - **Schema Healing:** Added legacy backfill logic to `migrations_schema_healing.sql` to sync `how/why` columns into `metadata` if missing.
+
+### [Cyrus] Deployment Sequence
+**Status:** Executed
+**Action:**
+- **Cache Clear:** Purged build artifacts (`dist/`) and npm cache.
+- **Readiness:** System verified clean and ready for production deployment.
