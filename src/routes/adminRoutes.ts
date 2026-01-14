@@ -145,6 +145,19 @@ adminRoutes.post('/ghost-parse', async (c) => {
     }
 });
 
+// GET /api/admin/system-settings - Admin Console Config (Fix for [INVALID ERROR])
+adminRoutes.get('/system-settings', async (c) => {
+    // Return mock config to satisfy frontend
+    return c.json({
+        neural_config: {
+            status: "active",
+            version: "v12",
+            mode: "sovereign",
+            last_audit: new Date().toISOString()
+        }
+    });
+});
+
 // POST /api/admin/sync-bridge - Manual Trigger for Bridge Audit
 adminRoutes.post('/sync-bridge', async (c) => {
     // 1. Role Check
