@@ -4,6 +4,7 @@ import { config } from '../config';
 import type { AppEnv } from '../hono';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NEURAL_CORE_INSTRUCTIONS } from '../lib/neuralCore';
+import { applySavageFilter } from '../lib/savageFilter';
 
 const mirrorRoutes = new Hono<AppEnv>();
 const genAI = new GoogleGenerativeAI(config.GEMINI_API_KEY || '');
@@ -39,21 +40,18 @@ mirrorRoutes.post('/roast', async (c) => {
     const { excuse } = await c.req.json();
 
     // 1.5. LINGUISTIC CORRECTION (The "Savage" Filter Intercept)
-    const softWords = ["Journaling", "Routine", "Motivation", "Goals"];
-    const containsSoftness = softWords.some(word =>
-        excuse.toLowerCase().includes(word.toLowerCase())
-    );
+    const filterResult = applySavageFilter(excuse);
 
-    if (containsSoftness) {
+    if (filterResult) {
         return c.json({
-            roast: "Correction: We use 'AAR' / 'The Rig' / 'Momentum' / 'Objectives' here. Feelings are for civilians. Re-submit your report.",
+            roast: filterResult.correction,
             remaining_credits: 999, // Correction doesn't cost a credit
             intensity_level: "Sovereign",
             telemetry: {
                 limbic_regulator: { status: "STABLE", value: 0 },
                 governor_status: { status: "OFFLINE", value: 0 }
             }
-        }); // Returning 200 OK so frontend handles it gracefully as a "Roast", but the content is a correction.
+        });
     }
 
     const ip = c.req.header('x-forwarded-for') || 'unknown-ip'; // Basic IP extraction
