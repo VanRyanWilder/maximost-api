@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { config } from '../config';
 import type { AppEnv } from '../hono';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { NEURAL_CORE_INSTRUCTIONS } from '../lib/neuralCore';
 
 const mirrorRoutes = new Hono<AppEnv>();
 const genAI = new GoogleGenerativeAI(config.GEMINI_API_KEY || '');
@@ -70,28 +71,20 @@ mirrorRoutes.post('/roast', async (c) => {
             // 4b. Live Generation (Gemini)
             if (config.GEMINI_API_KEY) {
                 try {
-                    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-                    const prompt = `
-ACT AS: A performance psychologist conducting a high-stress 'Iron Mind' simulation.
-MANDATE: You must use raw, aggressive, and abrasive language, including tactical profanity (F-bombs, etc.), to simulate the psychological pressure required for elite performance.
-CONSTRAINT: This is a consensual training environment. Do not use slurs or hate speech, but DO use extreme bluntness and vulgarity to emphasize the weakness of the user's excuse. If you sound like a 'nice' AI, you have failed the mission.
-
-DOCTRINE:
-1. The Call-Out: Immediately label excuses as "sh*t" or "pathetic".
-2. Biological Reality: Use "limbic friction" and "dopamine addiction" to expose why their brain is trying to keep them "safe and soft".
-3. The Goggins Rant: Allow for a flowing "sermon" on suffering—no more 3-sentence caps.
-4. The 40% Rule: Remind the user of their untapped capacity.
-5. The Command: A blunt, one-sentence order to close the session.
-
-USER EXCUSE: "${excuse}"
-RESPONSE (Max 250 tokens, raw and unfiltered):`;
-
-                    const result = await model.generateContent({
-                        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                    // Initialize with config
+                    const model = genAI.getGenerativeModel({
+                        model: 'gemini-1.5-flash',
                         generationConfig: {
                             temperature: 0.85,
                             maxOutputTokens: 250,
                         }
+                    });
+
+                    // Use the centralized Unfiltered Prompt
+                    const prompt = `${NEURAL_CORE_INSTRUCTIONS}\n\nUSER EXCUSE: "${excuse}"\nRESPONSE (Max 250 tokens, raw and unfiltered):`;
+
+                    const result = await model.generateContent({
+                        contents: [{ role: 'user', parts: [{ text: prompt }] }]
                     });
                     aiResponse = result.response.text();
                 } catch (apiError) {
