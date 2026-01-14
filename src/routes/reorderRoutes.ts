@@ -16,7 +16,7 @@ reorderRoutes.post('/habits/reorder', async (c) => {
         const updates = orderedIds.map((id: string, index: number) =>
             supabase
                 .from('habits')
-                .update({ order: index })
+                .update({ display_order: index })
                 .eq('id', id)
                 .eq('user_id', user.id)
         );
