@@ -16,3 +16,9 @@ Console Trapping: Some pages remove the sidebar. Fix: Apply MainLayout wrap glob
 Starting 5 Discrepancy: Quick Start only pulling 4 atoms. Fix: Audit is_starting_5 flags.
 
 The Airlock: Mapping memory for Loop/Samsung CSVs is not yet active. Fix: Create user_data_mapping table.
+
+Timestamp	Entry Type	Status	Operator / Jules	Notes
+01/13 21:30	Identity Audit	🔴 FAILED	Operator (Josh)	admin@maximost.com role still user. Redirect loop persists.
+01/13 21:35	Schema Check	🔴 FAILED	Operator (Josh)	profiles table missing callsign and full_name.
+01/13 21:40	Lore Hydration	🔴 FAILED	Operator (Josh)	Archive shows "No description". Vance still pulling legacy keys.
+01/13 21:45	UI Architecture	🔴 FAILED	Vance	Regressed to Pop-up instead of Slide-In Drawer. Violation of 05_BODY_HUD.md.
