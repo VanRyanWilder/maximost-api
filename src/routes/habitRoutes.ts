@@ -37,11 +37,18 @@ habitRoutes.get('/', async (c) => {
 
   // Handshake Bridge: Ensure frontend receives 'is_absolute' derived from 'type'
   // And ensure metadata is an object (Supabase JS usually handles this, but we enforce safe fallback)
-  const enrichedData = data.map((h: any) => ({
-      ...h,
-      metadata: typeof h.metadata === 'string' ? JSON.parse(h.metadata) : (h.metadata || {}),
-      is_absolute: h.type === 'absolute'
-  }));
+  const enrichedData = data.map((h: any) => {
+      const metadata = typeof h.metadata === 'string' ? JSON.parse(h.metadata) : (h.metadata || {});
+      return {
+          ...h,
+          metadata: {
+              ...metadata,
+              // CRITICAL FIX: Fallback to ["General"] if null to prevent Frontend crash
+              stacks: metadata.stacks || h.linked_stacks || ["General"]
+          },
+          is_absolute: h.type === 'absolute'
+      };
+  });
 
   return c.json(enrichedData);
 });
