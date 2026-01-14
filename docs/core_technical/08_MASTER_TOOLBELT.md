@@ -24,3 +24,20 @@ Icons are not decorative; they are functional pips for the Operator.
 Centenarian Pips: Habits belonging to the Attia stack must show the "Centenarian" tag and pull the expert motivation rationale from the metadata.identity field.
 
 Starting 5: Icons tagged with is_starting_5 = true must be reflected in the 1% Dashboard Header.
+
+(Lore & Visual Standards)
+This ensures the "Lens" is always high-fidelity and synced with your edits in Supabase.
+
+1. Metadata Mapping (Lore Hydration)
+Tactical (How): Maps from metadata.tactical in the DB (sourced from compiler.step in the seed).
+
+Identity (Why): Maps from metadata.identity in the DB (sourced from compiler.why in the seed).
+
+Hoisting: The API must serve target_value, unit, frequency, and type as top-level fields so Vance doesn't have to parse JSON on the fly.
+
+2. Visual Unification
+Icon Set: All screens (Archive, Form, HUD) must use the unified Lucide-React set of 42 icons.
+
+Branding: Individual items in the Archive must be labeled "IMPORT HABIT".
+
+Persistence: Every habit "Adopted" must copy its metadata from the library to the user table to ensure "Ghost Data" is eliminated.
