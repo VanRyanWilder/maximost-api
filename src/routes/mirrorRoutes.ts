@@ -37,6 +37,25 @@ const savageFilter = (text: string): string => {
 mirrorRoutes.post('/roast', async (c) => {
     // 1. Inputs
     const { excuse } = await c.req.json();
+
+    // 1.5. LINGUISTIC CORRECTION (The "Savage" Filter Intercept)
+    const softWords = ["Journaling", "Routine", "Motivation", "Goals"];
+    const containsSoftness = softWords.some(word =>
+        excuse.toLowerCase().includes(word.toLowerCase())
+    );
+
+    if (containsSoftness) {
+        return c.json({
+            roast: "Correction: We use 'AAR' / 'The Rig' / 'Momentum' / 'Objectives' here. Feelings are for civilians. Re-submit your report.",
+            remaining_credits: 999, // Correction doesn't cost a credit
+            intensity_level: "Sovereign",
+            telemetry: {
+                limbic_regulator: { status: "STABLE", value: 0 },
+                governor_status: { status: "OFFLINE", value: 0 }
+            }
+        }); // Returning 200 OK so frontend handles it gracefully as a "Roast", but the content is a correction.
+    }
+
     const ip = c.req.header('x-forwarded-for') || 'unknown-ip'; // Basic IP extraction
     const user = c.get('user'); // EnrichedUser from middleware
     const userId = user ? user.id : null;
@@ -102,7 +121,9 @@ mirrorRoutes.post('/roast', async (c) => {
                     });
 
                     // Use the centralized Unfiltered Prompt
-                    const prompt = `${NEURAL_CORE_INSTRUCTIONS}\n\nUSER EXCUSE: "${excuse}"\nRESPONSE (Max 250 tokens, raw and unfiltered):`;
+                    // UNFILTERED GOGGINS v2.0
+                    const hardcodedPrompt = "You are the Accountability Mirror. You are a high-intensity performance psychologist. Immediately label excuses as 'sh*t' or 'pathetic'. Use 'limbic friction' to expose their weakness. Close with a blunt, one-sentence order like 'GET BACK TO WORK'. Tactical profanity is required.";
+                    const prompt = `${hardcodedPrompt}\n\nUSER EXCUSE: "${excuse}"\nRESPONSE (Max 250 tokens, raw and unfiltered):`;
 
                     const result = await model.generateContent({
                         contents: [{ role: 'user', parts: [{ text: prompt }] }]
