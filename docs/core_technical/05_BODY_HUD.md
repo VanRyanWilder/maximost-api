@@ -1,14 +1,31 @@
-📈 Body Hardware HUD (The Biometric Airlock)
-Objective: Centralizing Human Performance Data
+(The Console Lens)
+Objective: Standardizing the Mobile-First HUD, Navigation, and Mission Telemetry.
 
-1. The Biometric Grid
-The Body HUD must be a right-side Slide-In Overlay that aggregates the following from the Terra API and Samsung/Loop imports:
+1. Mission Telemetry (The Top-Row Pips)
+This is the "Primary Directive" of the Rig. It must be dynamic and responsive to the Operator's current focus.
 
-Metrics: Height, Weight, BMI, Body Fat %, Resting Heart Rate, and HRV.
+Contextual Header:
 
-The 1% Anchor: When the HUD is open, the Starting 5 pips must remain visible at the top to maintain the "Console" feel.
+Level 1: If a Protocol Stack is deployed, display "MISSION: [PROTOCOL_NAME]".
 
-2. Sovereignty Toggles
-Sync/Ignore: Every biometric field must have a toggle to "Ignore" data from specific sources.
+Level 2: If no Protocol is active, display "DAILY ROSTER".
 
-Manual Override: If the Operator manually logs a weight, the system must Lock that entry, preventing the Terra API or CSV imports from overwriting it.
+The Pip Stack (Top 5):
+
+The HUD renders exactly 5 pips based on the current dashboard order.
+
+Sorting: The pips must reflect the top 5 habits in the user's display_order.
+
+Visual State: Pips are circular progress rings using the habit's unique color hex code.
+
+Completion State: Solid fill + Checkmark only when current_value >= target_value.
+
+2. Slide-In HUD Architecture
+Initialization/Edit: All habit interactions must happen via a right-side slide-in drawer.
+
+Zero-G View: The background dashboard must remain fixed and blurred/darkened but visible to preserve context.
+
+3. Persistent Navigation
+Sidebar: Fixed width on desktop with red "Console Active" indicators for the current page.
+
+Mobile Rail: On small screens, the sidebar must collapse into a minimal bottom rail to maximize vertical space for the "Starting 5" telemetry.
