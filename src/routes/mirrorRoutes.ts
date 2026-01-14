@@ -12,6 +12,27 @@ const genAI = new GoogleGenerativeAI(config.GEMINI_API_KEY || '');
 const GUEST_LIMIT = 3; // Roasts per hour
 const WINDOW_MS = 60 * 60 * 1000; // 1 Hour
 
+// WORD REPLACEMENT PROTOCOL (The "Savage" Filter)
+const savageFilter = (text: string): string => {
+    const replacements: Record<string, string> = {
+        "Journaling": "AAR (After-Action Report)",
+        "Habit Tracker": "Tactical Protocol",
+        "To-Do List": "Mission Orders",
+        "Routine": "The Rig",
+        "Goals": "Objectives",
+        "Failed": "Data Point",
+        "Motivation": "Momentum",
+        "Preferences": "Neural Bridge Config"
+    };
+
+    let filtered = text;
+    for (const [soft, tactical] of Object.entries(replacements)) {
+        const regex = new RegExp(soft, "gi"); // Case insensitive
+        filtered = filtered.replace(regex, tactical);
+    }
+    return filtered;
+};
+
 // POST /api/mirror/roast
 mirrorRoutes.post('/roast', async (c) => {
     // 1. Inputs
@@ -99,6 +120,9 @@ mirrorRoutes.post('/roast', async (c) => {
                 source = "mock";
             }
         }
+
+        // 4c. The Savage Filter (Post-Processing)
+        aiResponse = savageFilter(aiResponse);
 
         // 5. THE AAR (Logging)
         await supabase.from('mirror_logs').insert({
