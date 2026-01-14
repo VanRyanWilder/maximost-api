@@ -3,6 +3,24 @@ import type { AppEnv } from '../hono';
 
 const habitRoutes = new Hono<AppEnv>();
 
+// GET /api/habits/stats - Fetch habit telemetry from view
+habitRoutes.get('/stats', async (c) => {
+    const user = c.get('user');
+    const supabase = c.get('supabase');
+
+    const { data, error } = await supabase
+        .from('habit_stats_view')
+        .select('*')
+        .eq('user_id', user.id);
+
+    if (error) {
+        // If view doesn't exist, this might fail. Return empty for graceful degradation.
+        console.error('Stats View Error:', error);
+        return c.json({ error: 'Failed to fetch stats' }, 500);
+    }
+    return c.json(data);
+});
+
 // GET /api/habits - Fetch all habits for the logged-in user
 habitRoutes.get('/', async (c) => {
   const user = c.get('user');
@@ -18,8 +36,10 @@ habitRoutes.get('/', async (c) => {
   }
 
   // Handshake Bridge: Ensure frontend receives 'is_absolute' derived from 'type'
+  // And ensure metadata is an object (Supabase JS usually handles this, but we enforce safe fallback)
   const enrichedData = data.map((h: any) => ({
       ...h,
+      metadata: typeof h.metadata === 'string' ? JSON.parse(h.metadata) : (h.metadata || {}),
       is_absolute: h.type === 'absolute'
   }));
 
