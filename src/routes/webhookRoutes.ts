@@ -117,4 +117,47 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     }
 }
 
+// POST /api/webhooks/sentry - Nerve Center: Forward Critical Errors
+webhookRoutes.post('/sentry', async (c) => {
+    // 1. Authenticate Source (SENTRY_SECRET Handshake)
+    const secret = c.req.header('SENTRY_SECRET');
+    if (!secret || secret !== config.SENTRY_WEBHOOK_SECRET) {
+        return c.json({ error: 'Unauthorized: Invalid Sentry Secret' }, 401);
+    }
+
+    // 2. Parse Payload
+    let payload;
+    try {
+        payload = await c.req.json();
+    } catch (e) {
+        return c.json({ error: 'Invalid JSON' }, 400);
+    }
+
+    const { level, message, event_id, platform } = payload;
+
+    // Filter: Only care about 'error' or 'fatal' (or 'critical' as requested)
+    // Sentry levels: fatal, error, warning, info, debug
+    if (level === 'error' || level === 'fatal' || level === 'critical') {
+        const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_SERVICE_ROLE_KEY);
+
+        const { error } = await supabase
+            .from('system_events')
+            .insert({
+                type: 'sentry_alert',
+                payload: payload,
+                severity: level,
+                source: 'sentry'
+            });
+
+        if (error) {
+            console.error('Failed to log Sentry event to Nerve Center:', error);
+            // Don't fail the webhook response, Sentry doesn't care.
+        } else {
+            console.log(`logged Sentry ${level} event: ${event_id}`);
+        }
+    }
+
+    return c.json({ received: true });
+});
+
 export default webhookRoutes;

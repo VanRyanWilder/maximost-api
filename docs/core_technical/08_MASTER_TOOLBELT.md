@@ -41,3 +41,5 @@ Icon Set: All screens (Archive, Form, HUD) must use the unified Lucide-React set
 Branding: Individual items in the Archive must be labeled "IMPORT HABIT".
 
 Persistence: Every habit "Adopted" must copy its metadata from the library to the user table to ensure "Ghost Data" is eliminated.
+## Schema Update (2026-01-14)
+- Detected `get_coaching_stats` RPC with v12 JSONB spec.
