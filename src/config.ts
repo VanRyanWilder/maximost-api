@@ -12,6 +12,7 @@ const envSchema = z.object({
   GEMINI_API_KEY: z.string().optional(),
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  // Fix for build: Sentry optional
   SENTRY_WEBHOOK_SECRET: z.string().optional().default("disabled"),
   STRIPE_PRICE_ID_OPERATOR: z.string().optional(),
   STRIPE_PRICE_ID_SOVEREIGN: z.string().optional(),
