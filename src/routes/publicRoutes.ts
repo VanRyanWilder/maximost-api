@@ -35,4 +35,28 @@ publicRoutes.get('/metadata', async (c) => {
     }
 });
 
+// GET /api/public/lexicon - The Proprietary Word Bank
+// Returns definitions for tooltips and hovers (e.g., Limbic Friction, 40% Rule)
+publicRoutes.get('/lexicon', async (c) => {
+    // SECURITY: Use ANON_KEY to enforce RLS (Public Read Policy)
+    const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+
+    try {
+        const { data, error } = await supabase
+            .from('word_bank')
+            .select('*');
+
+        if (error) {
+            console.error('Error fetching lexicon:', error);
+            // Fallback (in case table doesn't exist yet, return empty list)
+            return c.json({ error: 'Failed to fetch lexicon', fallback: [] }, 500);
+        }
+
+        return c.json(data);
+    } catch (err) {
+        console.error('Lexicon Error:', err);
+        return c.json({ error: 'Internal Server Error' }, 500);
+    }
+});
+
 export default publicRoutes;
