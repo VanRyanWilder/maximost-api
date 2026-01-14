@@ -5,6 +5,9 @@ export interface EnrichedUser extends User {
     role: 'user' | 'admin' | 'ROOT_ADMIN';
     membership_tier: 'initiate' | 'operator' | 'sovereign' | 'architect' | 'vanguard';
     neural_config?: any;
+    callsign?: string;
+    display_name?: string;
+    full_name?: string;
   };
 }
 

@@ -121,7 +121,7 @@ app.use('/api/*', async (c, next) => {
         // Enrich User
         const { data: profile } = await adminSupabase
             .from('profiles')
-            .select('role, membership_tier, neural_config')
+            .select('role, membership_tier, neural_config, callsign, display_name, full_name')
             .eq('id', user.id)
             .single();
 
@@ -135,7 +135,10 @@ app.use('/api/*', async (c, next) => {
             profile: {
                 role: finalRole,
                 membership_tier: profile?.membership_tier || 'initiate',
-                neural_config: profile?.neural_config || null
+                neural_config: profile?.neural_config || null,
+                callsign: profile?.callsign || undefined,
+                display_name: profile?.display_name || undefined,
+                full_name: profile?.full_name || undefined
             }
         };
 
@@ -270,7 +273,13 @@ app.get('/api/archive/lore', async (c) => {
         type: h.type || h.metadata?.type || 'absolute',
 
         // Ensure metadata is passed through for deep inspection
-        metadata: h.metadata || {}
+        // Consolidate lore metadata: inject hex_color, identity, tactical
+        metadata: {
+            ...h.metadata,
+            hex_color: h.color || h.metadata?.visuals?.color || '#3B82F6',
+            identity: h.metadata?.identity || h.metadata?.compiler?.why || h.why_instruction || 'Forge your sovereign path.',
+            tactical: h.metadata?.tactical || h.metadata?.compiler?.step || h.how_instruction || 'Execute the protocol.'
+        }
     }));
 
     return c.json(enrichedData);
