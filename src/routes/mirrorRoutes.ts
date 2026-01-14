@@ -2,8 +2,10 @@ import { Hono } from 'hono';
 import { createClient } from '@supabase/supabase-js';
 import { config } from '../config';
 import type { AppEnv } from '../hono';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const mirrorRoutes = new Hono<AppEnv>();
+const genAI = new GoogleGenerativeAI(config.GEMINI_API_KEY || '');
 
 // THE REGULATOR CONFIG
 const GUEST_LIMIT = 3; // Roasts per hour
@@ -49,9 +51,53 @@ mirrorRoutes.post('/roast', async (c) => {
             }
         }
 
-        // 4. THE BRAIN (AI Generation)
-        // TODO: Replace with Gemini Call using System Prompt
-        const aiResponse = "Your fatigue is a lie told by your limbic system to save energy. You are not tired; you are unconditioned. Lace up your shoes now.";
+        // 4. THE BRAIN (Cache & AI Generation)
+        let aiResponse = "";
+        let source = "live";
+
+        // 4a. Check Cache (Semantic/Pattern Match)
+        const { data: cached } = await supabase
+            .from('cached_roasts')
+            .select('response_text')
+            .ilike('excuse_pattern', `%${excuse}%`)
+            .limit(1)
+            .single();
+
+        if (cached) {
+            aiResponse = cached.response_text;
+            source = "cache";
+        } else {
+            // 4b. Live Generation (Gemini)
+            if (config.GEMINI_API_KEY) {
+                try {
+                    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+                    const prompt = `
+ACT AS: A performance psychologist conducting a high-stress 'Iron Mind' simulation.
+MANDATE: You must use raw, aggressive, and abrasive language, including tactical profanity (F-bombs, etc.), to simulate the psychological pressure required for elite performance.
+CONSTRAINT: This is a consensual training environment. Do not use slurs or hate speech, but DO use extreme bluntness and vulgarity to emphasize the weakness of the user's excuse. If you sound like a 'nice' AI, you have failed the mission.
+USER EXCUSE: "${excuse}"
+RESPONSE (Max 250 tokens, one paragraph + one command):`;
+
+                    const result = await model.generateContent({
+                        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                        generationConfig: {
+                            temperature: 0.85,
+                            maxOutputTokens: 250,
+                        }
+                    });
+                    aiResponse = result.response.text();
+                } catch (apiError) {
+                    console.error("Gemini API Error:", apiError);
+                    // Fallback if API fails
+                    aiResponse = "Your fatigue is a lie told by your limbic system to save energy. You are not tired; you are unconditioned. Lace up your shoes now.";
+                    source = "fallback";
+                }
+            } else {
+                // Fallback if no key
+                aiResponse = "Your fatigue is a lie told by your limbic system to save energy. You are not tired; you are unconditioned. Lace up your shoes now.";
+                source = "mock";
+            }
+        }
 
         // 5. THE AAR (Logging)
         await supabase.from('mirror_logs').insert({

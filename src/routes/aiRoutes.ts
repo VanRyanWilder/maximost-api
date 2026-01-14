@@ -192,19 +192,4 @@ aiRoutes.post('/chat', async (c) => {
     }
 });
 
-// POST /api/ai/roast - The Roast Endpoint (Mock Mode)
-aiRoutes.post('/roast', async (c) => {
-    const { excuse } = await c.req.json();
-
-    // MOCK MODE: Bypass Gemini for now to unblock Frontend testing
-    // Simulate delay for realism
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    return c.json({
-        roast: "That is a biological safety mechanism, not a valid reason. Your ancestors hunted mammoths; you are complaining about air conditioning.",
-        reframe: "Discomfort is the price of admission to a meaningful life.",
-        order: "DO IT ANYWAY."
-    });
-});
-
 export default aiRoutes;
