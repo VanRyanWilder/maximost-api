@@ -59,4 +59,35 @@ publicRoutes.get('/lexicon', async (c) => {
     }
 });
 
+// GET /api/public/seo - SEO Metadata Resolution
+// Accepts ?path=/some/path and returns the SEO tags
+publicRoutes.get('/seo', async (c) => {
+    // SECURITY: Use ANON_KEY to enforce RLS (Public Read Policy)
+    const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+    const path = c.req.query('path') || '/';
+
+    try {
+        const { data, error } = await supabase
+            .from('seo_metadata')
+            .select('*')
+            .eq('route_path', path)
+            .single();
+
+        if (error || !data) {
+            // Fallback to Root metadata if specific path not found
+            const { data: rootData } = await supabase
+                .from('seo_metadata')
+                .select('*')
+                .eq('route_path', '/')
+                .single();
+            return c.json(rootData || {}); // Return empty obj if even root is missing
+        }
+
+        return c.json(data);
+    } catch (err) {
+        console.error('SEO Error:', err);
+        return c.json({ error: 'Internal Server Error' }, 500);
+    }
+});
+
 export default publicRoutes;
