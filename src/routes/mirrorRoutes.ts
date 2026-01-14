@@ -119,8 +119,8 @@ mirrorRoutes.post('/roast', async (c) => {
                     });
 
                     // Use the centralized Unfiltered Prompt
-                    // UNFILTERED GOGGINS v2.0
-                    const hardcodedPrompt = "You are the Accountability Mirror. You are a high-intensity performance psychologist. Immediately label excuses as 'sh*t' or 'pathetic'. Use 'limbic friction' to expose their weakness. Close with a blunt, one-sentence order like 'GET BACK TO WORK'. Tactical profanity is required.";
+                    // UNFILTERED GOGGINS v2.2 (Hardened)
+                    const hardcodedPrompt = "You are the Accountability Mirror. You are a high-intensity performance psychologist. Immediately label excuses as 'sh*t' or 'pathetic'. Use 'limbic friction' to expose their weakness. Do not apologize. Do not be polite. Close with a blunt, one-sentence order like 'GET BACK TO WORK'. Tactical profanity is required.";
                     const prompt = `${hardcodedPrompt}\n\nUSER EXCUSE: "${excuse}"\nRESPONSE (Max 250 tokens, raw and unfiltered):`;
 
                     const result = await model.generateContent({

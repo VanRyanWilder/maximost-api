@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { AppEnv } from '../hono';
 import { createClient } from '@supabase/supabase-js';
 import { config } from '../config';
+import { parseSamsungHealthExport } from '../lib/parsers/samsungParser';
 
 const app = new Hono<AppEnv>();
 
@@ -113,6 +114,69 @@ app.post('/upload', async (c) => {
     }
 
     return c.json({ message: `Imported ${entriesToInsert.length} logs successfully.` });
+});
+
+// POST /api/import/samsung - Ingestion Engine for Samsung Health Data
+// Accepts a JSON file or payload from the Vault Sync Bridge
+app.post('/samsung', async (c) => {
+    const user = c.get('user');
+    const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_SERVICE_ROLE_KEY);
+
+    let rawData: any;
+
+    try {
+        const body = await c.req.parseBody();
+        const file = body['file'];
+
+        if (file) {
+            // Handle file upload
+            const text = await (file as any).text();
+            rawData = JSON.parse(text);
+        } else {
+            // Handle raw JSON body (if direct payload)
+            rawData = await c.req.json();
+        }
+    } catch (e) {
+        return c.json({ error: 'Failed to parse payload. Ensure JSON file or body.' }, 400);
+    }
+
+    // 1. Parse Data using the Parser Engine
+    const { heartRate, steps, sleep, errors } = parseSamsungHealthExport(rawData);
+
+    if (errors.length > 0) {
+        console.warn('Samsung Parser Warnings:', errors);
+        // Continue partial import or fail? Partial is better for telemetry.
+    }
+
+    // 2. Bulk Insert (Transactional-ish)
+    const results = { hr: 0, steps: 0, sleep: 0 };
+
+    if (heartRate.length > 0) {
+        const payload = heartRate.map(r => ({ ...r, user_id: user.id }));
+        const { error } = await supabase.from('telemetry_heart_rate').insert(payload);
+        if (!error) results.hr = payload.length;
+        else console.error('HR Import Error:', error);
+    }
+
+    if (steps.length > 0) {
+        const payload = steps.map(r => ({ ...r, user_id: user.id }));
+        const { error } = await supabase.from('telemetry_steps').insert(payload);
+        if (!error) results.steps = payload.length;
+        else console.error('Steps Import Error:', error);
+    }
+
+    if (sleep.length > 0) {
+        const payload = sleep.map(r => ({ ...r, user_id: user.id }));
+        const { error } = await supabase.from('telemetry_sleep').insert(payload);
+        if (!error) results.sleep = payload.length;
+        else console.error('Sleep Import Error:', error);
+    }
+
+    return c.json({
+        message: 'Sync Bridge Processing Complete',
+        stats: results,
+        warnings: errors
+    });
 });
 
 export default app;
