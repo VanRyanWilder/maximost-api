@@ -158,6 +158,39 @@ adminRoutes.get('/system-settings', async (c) => {
     });
 });
 
+// Architect & Toolbelt Routes (Hard-wired)
+// These routes serve as the backend anchors for the Master Architect's tools.
+
+// GET /api/admin/architect - The Architect's Dashboard Data
+adminRoutes.get('/architect', async (c) => {
+    const supabase = c.get('supabase');
+    // Fetch critical system stats for the Architect
+    const { count: usersCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+    const { count: habitsCount } = await supabase.from('habits').select('*', { count: 'exact', head: true });
+
+    return c.json({
+        status: "ONLINE",
+        metrics: {
+            total_operators: usersCount || 0,
+            active_protocols: habitsCount || 0,
+            system_integrity: "100%"
+        },
+        message: "Welcome, Master Architect."
+    });
+});
+
+// GET /api/admin/toolbelt - The Master Toolbelt Data
+adminRoutes.get('/toolbelt', async (c) => {
+    // Return available tools and their status
+    return c.json({
+        tools: [
+            { id: "ghost_parser", name: "Ghost Log Parser", status: "active", endpoint: "/api/admin/ghost-parse" },
+            { id: "bridge_audit", name: "Iron Strike Bridge", status: "active", endpoint: "/api/admin/sync-bridge" },
+            { id: "seo_engine", name: "Meta-Engine", status: "beta", endpoint: "/api/admin/seo" }
+        ]
+    });
+});
+
 // POST /api/admin/sync-bridge - Manual Trigger for Bridge Audit
 adminRoutes.post('/sync-bridge', async (c) => {
     // 1. Role Check
