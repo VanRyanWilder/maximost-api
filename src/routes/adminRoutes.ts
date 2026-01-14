@@ -145,4 +145,44 @@ adminRoutes.post('/ghost-parse', async (c) => {
     }
 });
 
+// POST /api/admin/sync-bridge - Manual Trigger for Bridge Audit
+adminRoutes.post('/sync-bridge', async (c) => {
+    // 1. Role Check
+    const user = c.get('user');
+    if (user.profile.role !== 'admin' && user.profile.role !== 'ROOT_ADMIN') {
+        return c.json({ error: 'Forbidden: Admin Access Required' }, 403);
+    }
+
+    // 2. Trigger Script
+    const { exec } = require('child_process');
+    const path = require('path');
+
+    const scriptPath = path.resolve(process.cwd(), 'src/scripts/bridge_audit.py');
+
+    // We wrap this in a promise to await execution
+    return new Promise((resolve) => {
+        exec(`python3 ${scriptPath}`, async (error: any, stdout: string, stderr: string) => {
+            if (error) {
+                console.error('Bridge Audit Error:', error);
+                // Return success but note failure (so UI doesn't crash) or error?
+                // Returning 500 might be better if it truly failed.
+                // Constraint: Runtime might not have python3.
+                resolve(c.json({ error: 'Bridge Audit Failed. Check server logs.', details: stderr || error.message }, 500));
+                return;
+            }
+
+            // Log to System Events
+            const supabase = c.get('supabase');
+            await supabase.from('system_events').insert({
+                type: 'bridge_audit_manual',
+                payload: { output: stdout },
+                severity: 'info',
+                source: 'admin_dashboard'
+            });
+
+            resolve(c.json({ message: 'Bridge Audit Executed Successfully', output: stdout }));
+        });
+    });
+});
+
 export default adminRoutes;

@@ -1,5 +1,5 @@
 -- Nerve Center Final: Consolidated Migration (The Iron Truth)
--- Includes: Schema Healing, RLS Reset, Lore Hydration, RPCs, System Events
+-- Includes: Schema Healing, RLS Reset, Lore Hydration, RPCs, System Events, Archive
 
 -- 1. Force Root Admin & Identity Schema
 UPDATE public.profiles SET role = 'ROOT_ADMIN' WHERE email = 'admin@maximost.com';
@@ -10,7 +10,7 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS callsign TEXT;
 ALTER TABLE public.habits ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0;
 ALTER TABLE public.habits ADD COLUMN IF NOT EXISTS circadian_window TEXT;
 
--- 2. Nerve Center Tables (System Events, AI Gaps, History)
+-- 2. Nerve Center Tables (System Events, AI Gaps, History, Archive)
 CREATE TABLE IF NOT EXISTS public.system_events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     type TEXT NOT NULL,
@@ -33,6 +33,15 @@ CREATE TABLE IF NOT EXISTS public.ai_chat_history (
     role TEXT NOT NULL,
     content TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS public.archive (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    habit_id UUID REFERENCES public.habits(id) ON DELETE SET NULL,
+    title TEXT NOT NULL,
+    completed_at TIMESTAMPTZ DEFAULT now(),
+    metadata JSONB DEFAULT '{}'::jsonb,
+    notes TEXT
 );
 
 -- 3. Writing Gates (RLS Reset)
@@ -61,6 +70,10 @@ DROP POLICY IF EXISTS "Users can manage their own system_events" ON public.syste
 DROP POLICY IF EXISTS "Users can manage system_events" ON public.system_events;
 CREATE POLICY "Admins can manage system events" ON public.system_events FOR ALL TO authenticated USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) IN ('admin', 'ROOT_ADMIN')) WITH CHECK ((SELECT role FROM public.profiles WHERE id = auth.uid()) IN ('admin', 'ROOT_ADMIN'));
 CREATE POLICY "Service Role Full Access" ON public.system_events FOR ALL TO service_role USING (true) WITH CHECK (true);
+ALTER TABLE public.archive ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage their own archive" ON public.archive;
+DROP POLICY IF EXISTS "Users can manage archive" ON public.archive;
+CREATE POLICY "Users can manage their own archive" ON public.archive FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 -- 4. Stats View
 DROP VIEW IF EXISTS public.habit_stats_view CASCADE;

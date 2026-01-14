@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 
 let sql = '-- Nerve Center Final: Consolidated Migration (The Iron Truth)\n';
-sql += '-- Includes: Schema Healing, RLS Reset, Lore Hydration, RPCs, System Events\n\n';
+sql += '-- Includes: Schema Healing, RLS Reset, Lore Hydration, RPCs, System Events, Archive\n\n';
 
 // 1. Admin & Identity
 sql += '-- 1. Force Root Admin & Identity Schema\n';
@@ -14,8 +14,8 @@ sql += 'ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS callsign TEXT;\n';
 sql += 'ALTER TABLE public.habits ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0;\n';
 sql += 'ALTER TABLE public.habits ADD COLUMN IF NOT EXISTS circadian_window TEXT;\n\n';
 
-// 2. System Events & Tables
-sql += '-- 2. Nerve Center Tables (System Events, AI Gaps, History)\n';
+// 2. Nerve Center Tables (System Events, AI Gaps, History, Archive)
+sql += '-- 2. Nerve Center Tables (System Events, AI Gaps, History, Archive)\n';
 sql += `CREATE TABLE IF NOT EXISTS public.system_events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     type TEXT NOT NULL,
@@ -38,11 +38,20 @@ sql += `CREATE TABLE IF NOT EXISTS public.ai_chat_history (
     role TEXT NOT NULL,
     content TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
+);\n`;
+sql += `CREATE TABLE IF NOT EXISTS public.archive (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    habit_id UUID REFERENCES public.habits(id) ON DELETE SET NULL,
+    title TEXT NOT NULL,
+    completed_at TIMESTAMPTZ DEFAULT now(),
+    metadata JSONB DEFAULT '{}'::jsonb,
+    notes TEXT
 );\n\n`;
 
 // 3. RLS Reset (Writing Gates)
 sql += '-- 3. Writing Gates (RLS Reset)\n';
-const tables = ['habits', 'habit_logs', 'user_memories', 'ai_gaps', 'ai_chat_history', 'system_events'];
+const tables = ['habits', 'habit_logs', 'user_memories', 'ai_gaps', 'ai_chat_history', 'system_events', 'archive'];
 tables.forEach(t => {
     sql += `ALTER TABLE public.${t} ENABLE ROW LEVEL SECURITY;\n`;
     sql += `DROP POLICY IF EXISTS "Users can manage their own ${t}" ON public.${t};\n`;
