@@ -21,6 +21,7 @@ import scholarshipRoutes from './routes/scholarshipRoutes';
 import importRoutes from './routes/importRoutes';
 import memoryRoutes from './routes/memoryRoutes';
 import fastingRoutes from './routes/fastingRoutes';
+import bodyRoutes from './routes/bodyRoutes';
 
 import { calculateConsistencyIndex } from './lib/telemetry';
 import { calculateDrift } from './lib/shadowAudit';
@@ -180,6 +181,7 @@ app.route('/api/scholarship', scholarshipRoutes);
 app.route('/api/import', importRoutes);
 app.route('/api/memories', memoryRoutes);
 app.route('/api/fasting', fastingRoutes);
+app.route('/api/body', bodyRoutes);
 
 // Telemetry Endpoint: Uptime
 app.get('/api/telemetry/uptime', async (c) => {
