@@ -66,10 +66,29 @@ mirrorRoutes.post('/roast', async (c) => {
         // Decrement local counter for response
         if (!userId && remainingCredits > 0) remainingCredits--;
 
+        // Mock Biometrics for Telemetry Gauge (Phase 2)
+        const mockBiometrics = {
+            recovery: 45, // Low recovery = High Limbic Friction
+            streak: 0     // No streak = Governor Active
+        };
+
+        const limbicFriction = 100 - mockBiometrics.recovery;
+        const governorLoad = mockBiometrics.streak > 3 ? 0 : 75;
+
         return c.json({
             roast: aiResponse,
             remaining_credits: remainingCredits,
-            intensity_level: "Sovereign"
+            intensity_level: "Sovereign",
+            telemetry: {
+                limbic_regulator: {
+                    status: limbicFriction > 50 ? "SURGING" : "STABLE",
+                    value: limbicFriction
+                },
+                governor_status: {
+                    status: governorLoad > 0 ? "ACTIVE" : "OFFLINE",
+                    value: governorLoad
+                }
+            }
         });
 
     } catch (error: any) {
