@@ -125,8 +125,10 @@ app.use('/api/*', async (c, next) => {
             .eq('id', user.id)
             .single();
 
-        const isHardcodedAdmin = user.email && user.email === config.ADMIN_EMAIL;
-        const finalRole = isHardcodedAdmin ? 'admin' : (profile?.role || 'user');
+        // Admin Logic: Trust the Database Role (Source of Truth)
+        // We do NOT override with hardcoded checks anymore to allow proper ROOT_ADMIN propagation.
+        const dbRole = profile?.role;
+        const finalRole = (dbRole === 'ROOT_ADMIN' || dbRole === 'admin') ? dbRole : 'user';
 
         const enrichedUser: EnrichedUser = {
             ...user,
