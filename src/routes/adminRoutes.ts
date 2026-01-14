@@ -186,9 +186,68 @@ adminRoutes.get('/toolbelt', async (c) => {
         tools: [
             { id: "ghost_parser", name: "Ghost Log Parser", status: "active", endpoint: "/api/admin/ghost-parse" },
             { id: "bridge_audit", name: "Iron Strike Bridge", status: "active", endpoint: "/api/admin/sync-bridge" },
-            { id: "seo_engine", name: "Meta-Engine", status: "beta", endpoint: "/api/admin/seo" }
+            { id: "seo_engine", name: "Meta-Engine", status: "beta", endpoint: "/api/admin/seo" },
+            { id: "word_bank", name: "Proprietary Lexicon", status: "active", endpoint: "/api/admin/lexicon" }
         ]
     });
+});
+
+// --- SEO META-MANAGEMENT ---
+
+// GET /api/admin/seo - List All SEO Metadata
+adminRoutes.get('/seo', async (c) => {
+    const supabase = c.get('supabase');
+    const { data, error } = await supabase.from('seo_metadata').select('*').order('route_path', { ascending: true });
+
+    if (error) return c.json({ error: 'Failed to fetch SEO metadata' }, 500);
+    return c.json(data);
+});
+
+// POST /api/admin/seo - Upsert SEO Metadata
+adminRoutes.post('/seo', async (c) => {
+    const supabase = c.get('supabase');
+    const { route_path, title, description, keywords, og_image } = await c.req.json();
+
+    if (!route_path || !title) return c.json({ error: 'Route path and title are required' }, 400);
+
+    const { data, error } = await supabase
+        .from('seo_metadata')
+        .upsert({
+            route_path,
+            title,
+            description,
+            keywords,
+            og_image,
+            updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+    if (error) return c.json({ error: 'Failed to save SEO metadata', details: error.message }, 500);
+    return c.json(data);
+});
+
+// --- LEXICON MANAGEMENT ---
+
+// POST /api/admin/lexicon - Upsert Word Bank Entry
+adminRoutes.post('/lexicon', async (c) => {
+    const supabase = c.get('supabase');
+    const { term, definition, category } = await c.req.json();
+
+    if (!term || !definition) return c.json({ error: 'Term and definition are required' }, 400);
+
+    const { data, error } = await supabase
+        .from('word_bank')
+        .upsert({
+            term,
+            definition,
+            category: category || 'general'
+        })
+        .select()
+        .single();
+
+    if (error) return c.json({ error: 'Failed to save term', details: error.message }, 500);
+    return c.json(data);
 });
 
 // POST /api/admin/sync-bridge - Manual Trigger for Bridge Audit
