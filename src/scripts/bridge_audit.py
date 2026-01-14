@@ -19,10 +19,10 @@ else:
 
 def fetch_repo_content(repo_name):
     # This function pulls the core Skeleton and Lens files via GitHub API
-    # Cyrus: Focus on /src/api, /src/routes, and /shared/types
+    # Cyrus: Focus on /src/routes/aiRoutes.ts and supabase/migrations/*.sql
 
     if not GITHUB_PAT:
-        print(f"Skipping {repo_name}: GITHUB_PAT missing.")
+        print(f"Skipping {repo_name}: GITHUB_PAT missing. Ensure .env is loaded.")
         return ""
 
     headers = {
@@ -30,12 +30,22 @@ def fetch_repo_content(repo_name):
         "Accept": "application/vnd.github.v3+json"
     }
 
-    # Placeholder logic for fetching tree/files
-    # In a real scenario, we'd recursively fetch or get specific paths
-    print(f"Fetching content for {repo_name}...")
+    print(f"Fetching Surgical Payload for {repo_name}...")
 
-    # Mock return for auditing purposes if we can't really call GitHub
-    return f"\n[Mock Content for {repo_name}]\n(Files scanned: src/api/*, src/routes/*)\n"
+    # Surgical Payload: Prioritize AI Routes and Migrations
+    # In a real implementation, we would list specific files:
+    # 1. src/routes/aiRoutes.ts
+    # 2. supabase/migrations/*.sql
+    # 3. shared/types/v12_spec.ts (if exists)
+
+    # Mock return reflecting the prioritized payload
+    payload = f"\n[Surgical Payload for {repo_name}]\n"
+    payload += "Files Targeted:\n"
+    payload += "- src/routes/aiRoutes.ts\n"
+    payload += "- supabase/migrations/*.sql (Last 5)\n"
+    payload += "- shared/types/v12_spec.ts\n"
+
+    return payload
 
 def run_neural_audit():
     if not model:
