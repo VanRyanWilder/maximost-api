@@ -51,18 +51,34 @@ sql += `CREATE TABLE IF NOT EXISTS public.archive (
 
 // 3. RLS Reset (Writing Gates)
 sql += '-- 3. Writing Gates (RLS Reset)\n';
-const tables = ['habits', 'habit_logs', 'user_memories', 'ai_gaps', 'ai_chat_history', 'system_events', 'archive'];
+const tables = ['habits', 'habit_logs', 'ai_gaps', 'archive'];
+// Simple "Own Data" Tables
 tables.forEach(t => {
     sql += `ALTER TABLE public.${t} ENABLE ROW LEVEL SECURITY;\n`;
     sql += `DROP POLICY IF EXISTS "Users can manage their own ${t}" ON public.${t};\n`;
     sql += `DROP POLICY IF EXISTS "Users can manage ${t}" ON public.${t};\n`;
-    // Specialized Policy for System Events (Admins Only)
-    if (t === 'system_events') {
-        sql += `CREATE POLICY "Admins can manage system events" ON public.system_events FOR ALL TO authenticated USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) IN ('admin', 'ROOT_ADMIN')) WITH CHECK ((SELECT role FROM public.profiles WHERE id = auth.uid()) IN ('admin', 'ROOT_ADMIN'));\n`;
-        sql += `CREATE POLICY "Service Role Full Access" ON public.system_events FOR ALL TO service_role USING (true) WITH CHECK (true);\n`;
-    } else {
+    sql += `CREATE POLICY "Users can manage their own ${t}" ON public.${t} FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);\n`;
+});
+
+// Admin-Auditable Tables (Memories, History, System Events)
+const adminTables = ['user_memories', 'ai_chat_history', 'system_events'];
+adminTables.forEach(t => {
+    sql += `ALTER TABLE public.${t} ENABLE ROW LEVEL SECURITY;\n`;
+    sql += `DROP POLICY IF EXISTS "Users can manage their own ${t}" ON public.${t};\n`;
+    sql += `DROP POLICY IF EXISTS "Users can manage ${t}" ON public.${t};\n`;
+    sql += `DROP POLICY IF EXISTS "Admins can manage ${t}" ON public.${t};\n`;
+    sql += `DROP POLICY IF EXISTS "Service Role Full Access" ON public.${t};\n`;
+
+    // Base Policy: Users own their data (except system_events)
+    if (t !== 'system_events') {
         sql += `CREATE POLICY "Users can manage their own ${t}" ON public.${t} FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);\n`;
     }
+
+    // Admin Policy: View/Manage All
+    sql += `CREATE POLICY "Admins can manage ${t}" ON public.${t} FOR ALL TO authenticated USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) IN ('admin', 'ROOT_ADMIN')) WITH CHECK ((SELECT role FROM public.profiles WHERE id = auth.uid()) IN ('admin', 'ROOT_ADMIN'));\n`;
+
+    // Service Role
+    sql += `CREATE POLICY "Service Role Full Access" ON public.${t} FOR ALL TO service_role USING (true) WITH CHECK (true);\n`;
 });
 sql += '\n';
 

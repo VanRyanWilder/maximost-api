@@ -119,9 +119,11 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
 // POST /api/webhooks/sentry - Nerve Center: Forward Critical Errors
 webhookRoutes.post('/sentry', async (c) => {
-    // 1. Authenticate Source (Simple check or rely on obfuscated URL in production)
-    // Sentry supports signature verification, but for MVP we might just accept payloads.
-    // Ideally, check 'Sentry-Hook-Resource' header or similar.
+    // 1. Authenticate Source (SENTRY_SECRET Handshake)
+    const secret = c.req.header('SENTRY_SECRET');
+    if (!secret || secret !== config.SENTRY_WEBHOOK_SECRET) {
+        return c.json({ error: 'Unauthorized: Invalid Sentry Secret' }, 401);
+    }
 
     // 2. Parse Payload
     let payload;
