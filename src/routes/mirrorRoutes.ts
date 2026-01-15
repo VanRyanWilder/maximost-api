@@ -95,6 +95,7 @@ mirrorRoutes.post('/roast', async (c) => {
         let source = "live";
 
         // 4a. Check Cache (Semantic/Pattern Match)
+        // Optimization: Look for exact or close matches to save tokens
         const { data: cached } = await supabase
             .from('cached_roasts')
             .select('response_text')
@@ -127,6 +128,17 @@ mirrorRoutes.post('/roast', async (c) => {
                         contents: [{ role: 'user', parts: [{ text: prompt }] }]
                     });
                     aiResponse = result.response.text();
+
+                    // 4c. Semantic Cache (Write-Back)
+                    // Save this roast for future operators with the same excuse
+                    if (aiResponse && excuse.length < 50) { // Only cache short, common excuses
+                        await supabase.from('cached_roasts').insert({
+                            excuse_pattern: excuse.toLowerCase(),
+                            response_text: aiResponse,
+                            category: 'generated'
+                        });
+                    }
+
                 } catch (apiError) {
                     console.error("Gemini API Error:", apiError);
                     // Fallback if API fails
