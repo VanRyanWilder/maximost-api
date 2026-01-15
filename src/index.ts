@@ -126,7 +126,7 @@ app.use('/api/*', async (c, next) => {
         // Enrich User
         const { data: profile } = await adminSupabase
             .from('profiles')
-            .select('role, membership_tier, neural_config, callsign, display_name, full_name')
+            .select('role, membership_tier, neural_config, callsign, display_name, full_name, timezone')
             .eq('id', user.id)
             .single();
 
@@ -143,7 +143,8 @@ app.use('/api/*', async (c, next) => {
                 neural_config: profile?.neural_config || null,
                 callsign: profile?.callsign || undefined,
                 display_name: profile?.display_name || undefined,
-                full_name: profile?.full_name || undefined
+                full_name: profile?.full_name || undefined,
+                timezone: profile?.timezone || 'UTC'
             }
         };
 

@@ -8,6 +8,7 @@ export interface EnrichedUser extends User {
     callsign?: string;
     display_name?: string;
     full_name?: string;
+    timezone?: string;
   };
 }
 
