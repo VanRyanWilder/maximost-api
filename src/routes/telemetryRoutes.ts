@@ -53,4 +53,35 @@ telemetryRoutes.put('/hr/:id', (c) => updateTelemetry(c, 'telemetry_heart_rate',
 telemetryRoutes.put('/steps/:id', (c) => updateTelemetry(c, 'telemetry_steps', ['count', 'calories_burned']));
 telemetryRoutes.put('/sleep/:id', (c) => updateTelemetry(c, 'telemetry_sleep', ['start_time', 'end_time', 'efficiency_score']));
 
+// POST Routes (Manual Override / Creation)
+const createTelemetry = async (c: any, table: string, requiredFields: string[]) => {
+    const user = c.get('user');
+    const supabase = c.get('supabase');
+    const body = await c.req.json();
+
+    // Basic Validation
+    for (const field of requiredFields) {
+        if (body[field] === undefined) return c.json({ error: `Missing field: ${field}` }, 400);
+    }
+
+    const { data, error } = await supabase
+        .from(table)
+        .insert({
+            ...body,
+            user_id: user.id
+        })
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Create Error:', error);
+        return c.json({ error: 'Creation failed' }, 500);
+    }
+    return c.json(data);
+};
+
+telemetryRoutes.post('/hr', (c) => createTelemetry(c, 'telemetry_heart_rate', ['bpm', 'recorded_at']));
+telemetryRoutes.post('/steps', (c) => createTelemetry(c, 'telemetry_steps', ['count', 'day']));
+telemetryRoutes.post('/sleep', (c) => createTelemetry(c, 'telemetry_sleep', ['start_time', 'end_time']));
+
 export default telemetryRoutes;
