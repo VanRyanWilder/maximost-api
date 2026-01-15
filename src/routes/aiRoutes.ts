@@ -7,6 +7,7 @@ import { fetchUserContext } from '../lib/orchestrator';
 import { NEURAL_CORE_INSTRUCTIONS } from '../lib/neuralCore';
 import { calculateConsistencyIndex } from '../lib/telemetry';
 import { evaluatePatterns } from '../lib/staticBrain';
+import { checkDrift } from '../lib/driftEngine';
 
 const aiRoutes = new Hono<AppEnv>();
 
@@ -40,6 +41,27 @@ aiRoutes.get('/daily-directive', async (c) => {
     } catch (error) {
         console.error('Error generating daily directive:', error);
         return c.json({ directive: 'Focus on your highest priority task.' }, { status: 500 });
+    }
+});
+
+// GET /api/ai/whisper - The Ghost Whisper (Telemetry Triggers)
+// Checks for drift against Sovereign Standards and returns a directive if triggered.
+aiRoutes.get('/whisper', async (c) => {
+    const user = c.get('user');
+    const supabase = c.get('supabase');
+
+    try {
+        const whisper = await checkDrift(user.id, supabase);
+
+        if (whisper) {
+            return c.json({ status: 'triggered', directive: whisper });
+        }
+
+        return c.json({ status: 'silent', message: 'No drift detected.' });
+
+    } catch (error: any) {
+        console.error('Whisper Error:', error);
+        return c.json({ error: 'Ghost protocol failure' }, 500);
     }
 });
 
