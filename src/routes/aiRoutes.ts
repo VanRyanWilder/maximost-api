@@ -8,6 +8,7 @@ import { NEURAL_CORE_INSTRUCTIONS } from '../lib/neuralCore';
 import { calculateConsistencyIndex } from '../lib/telemetry';
 import { evaluatePatterns } from '../lib/staticBrain';
 import { checkDrift } from '../lib/driftEngine';
+import { checkIntegrity } from '../lib/integrityEngine';
 
 const aiRoutes = new Hono<AppEnv>();
 
@@ -51,10 +52,18 @@ aiRoutes.get('/whisper', async (c) => {
     const supabase = c.get('supabase');
 
     try {
-        const whisper = await checkDrift(user.id, supabase);
+        // Parallel checks for maximum ghost presence
+        const [driftWhisper, integrityWhisper] = await Promise.all([
+            checkDrift(user.id, supabase),
+            checkIntegrity(user.id, supabase)
+        ]);
 
-        if (whisper) {
-            return c.json({ status: 'triggered', directive: whisper });
+        const directives = [];
+        if (driftWhisper) directives.push(driftWhisper);
+        if (integrityWhisper) directives.push(integrityWhisper);
+
+        if (directives.length > 0) {
+            return c.json({ status: 'triggered', directive: directives.join(" | ") });
         }
 
         return c.json({ status: 'silent', message: 'No drift detected.' });
