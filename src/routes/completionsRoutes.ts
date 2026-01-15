@@ -60,4 +60,44 @@ completionsRoutes.get('/sync', async (c) => {
     return c.json(completions);
 });
 
+// GET /api/completions/today - Timezone-Aware Fetch
+// Calculates "Today" based on user's profile timezone to prevent Midnight Wipe
+completionsRoutes.get('/today', async (c) => {
+    const user = c.get('user');
+    const supabase = c.get('supabase');
+
+    try {
+        // 1. Fetch Timezone
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('timezone')
+            .eq('id', user.id)
+            .single();
+
+        const userTz = profile?.timezone || 'America/New_York';
+
+        // 2. Calculate Today relative to User
+        const today = new Date().toLocaleDateString('en-CA', { timeZone: userTz }); // YYYY-MM-DD
+
+        // 3. Fetch Completions
+        const { data: completions } = await supabase
+            .from('habit_completions')
+            .select('habit_id, status')
+            .eq('user_id', user.id)
+            .eq('target_date', today);
+
+        // Transform
+        const completionMap: Record<string, boolean> = {};
+        completions?.forEach((row: any) => {
+            completionMap[row.habit_id] = row.status;
+        });
+
+        return c.json({ date: today, timezone: userTz, completions: completionMap });
+
+    } catch (error) {
+        console.error('Sync Failed:', error);
+        return c.json({ error: "Sync Failed" }, 500);
+    }
+});
+
 export default completionsRoutes;
