@@ -58,11 +58,13 @@ export async function fetchUserContext(userId: string, supabase: SupabaseClient,
         const twoWeeksAgo = new Date();
         twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
 
+        // Persistence Lockdown Update: Fetch from habit_completions
         const logsPromise = supabase
-            .from('habit_logs')
-            .select('habit_id, completed_at, value, note')
+            .from('habit_completions')
+            .select('habit_id, target_date, status, notes')
             .eq('user_id', userId)
-            .gte('completed_at', twoWeeksAgo.toISOString());
+            .gte('target_date', twoWeeksAgo.toISOString().split('T')[0])
+            .eq('status', true); // Only successes
 
         const ninetyDaysAgo = new Date();
         ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
@@ -126,7 +128,7 @@ export async function fetchUserContext(userId: string, supabase: SupabaseClient,
             logs.forEach((l: any) => {
                 const habit = habits.find((h: any) => h.id === l.habit_id);
                 const habitName = habit ? habit.name : 'Unknown Habit';
-                context += `- ${l.completed_at}: ${habitName} (Value: ${l.value}) ${l.note ? `Note: ${l.note}` : ''}\n`;
+                context += `- ${l.target_date}: ${habitName} (Status: COMPLETE) ${l.notes ? `Note: ${l.notes}` : ''}\n`;
             });
         }
         context += `\n`;

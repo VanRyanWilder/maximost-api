@@ -23,6 +23,8 @@ const deleteTelemetry = async (c: any, table: string) => {
 telemetryRoutes.delete('/hr/:id', (c) => deleteTelemetry(c, 'telemetry_heart_rate'));
 telemetryRoutes.delete('/steps/:id', (c) => deleteTelemetry(c, 'telemetry_steps'));
 telemetryRoutes.delete('/sleep/:id', (c) => deleteTelemetry(c, 'telemetry_sleep'));
+telemetryRoutes.delete('/body-comp/:id', (c) => deleteTelemetry(c, 'telemetry_body_composition'));
+telemetryRoutes.delete('/prs/:id', (c) => deleteTelemetry(c, 'telemetry_prs'));
 
 // PUT Routes (Edit)
 const updateTelemetry = async (c: any, table: string, allowedFields: string[]) => {
@@ -52,6 +54,8 @@ const updateTelemetry = async (c: any, table: string, allowedFields: string[]) =
 telemetryRoutes.put('/hr/:id', (c) => updateTelemetry(c, 'telemetry_heart_rate', ['bpm', 'recorded_at']));
 telemetryRoutes.put('/steps/:id', (c) => updateTelemetry(c, 'telemetry_steps', ['count', 'calories_burned']));
 telemetryRoutes.put('/sleep/:id', (c) => updateTelemetry(c, 'telemetry_sleep', ['start_time', 'end_time', 'efficiency_score']));
+telemetryRoutes.put('/body-comp/:id', (c) => updateTelemetry(c, 'telemetry_body_composition', ['weight_lbs', 'body_fat_pct', 'recorded_at']));
+telemetryRoutes.put('/prs/:id', (c) => updateTelemetry(c, 'telemetry_prs', ['exercise', 'weight_lbs', 'recorded_at']));
 
 // POST Routes (Manual Override / Creation)
 const createTelemetry = async (c: any, table: string, requiredFields: string[]) => {
@@ -83,5 +87,7 @@ const createTelemetry = async (c: any, table: string, requiredFields: string[]) 
 telemetryRoutes.post('/hr', (c) => createTelemetry(c, 'telemetry_heart_rate', ['bpm', 'recorded_at']));
 telemetryRoutes.post('/steps', (c) => createTelemetry(c, 'telemetry_steps', ['count', 'day']));
 telemetryRoutes.post('/sleep', (c) => createTelemetry(c, 'telemetry_sleep', ['start_time', 'end_time']));
+telemetryRoutes.post('/body-comp', (c) => createTelemetry(c, 'telemetry_body_composition', ['weight_lbs', 'recorded_at']));
+telemetryRoutes.post('/prs', (c) => createTelemetry(c, 'telemetry_prs', ['exercise', 'weight_lbs', 'recorded_at']));
 
 export default telemetryRoutes;
