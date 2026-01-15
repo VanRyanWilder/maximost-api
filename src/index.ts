@@ -24,6 +24,7 @@ import fastingRoutes from './routes/fastingRoutes';
 import bodyRoutes from './routes/bodyRoutes';
 import mirrorRoutes from './routes/mirrorRoutes';
 import publicRoutes from './routes/publicRoutes';
+import telemetryRoutes from './routes/telemetryRoutes';
 
 import { calculateConsistencyIndex } from './lib/telemetry';
 import { calculateDrift } from './lib/shadowAudit';
@@ -186,6 +187,7 @@ app.route('/api/fasting', fastingRoutes);
 app.route('/api/body', bodyRoutes);
 app.route('/api/mirror', mirrorRoutes);
 app.route('/api/public', publicRoutes);
+app.route('/api/telemetry', telemetryRoutes);
 
 // Telemetry Endpoint: Uptime
 app.get('/api/telemetry/uptime', async (c) => {

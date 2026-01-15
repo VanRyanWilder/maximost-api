@@ -20,12 +20,6 @@ app.patch('/neural', async (c) => {
     const supabase = c.get('supabase');
     const body = await c.req.json();
 
-    // Body contains the new config or partial updates
-    // We assume the body IS the neural_config jsonb, or contains a 'config' key?
-    // Usually PATCH merges.
-    // Let's assume body is the object to be stored in 'neural_config'.
-
-    // Check if body is valid JSON object
     if (!body || typeof body !== 'object') {
         return c.json({ error: 'Invalid config data' }, 400);
     }
@@ -41,6 +35,27 @@ app.patch('/neural', async (c) => {
     }
 
     return c.json({ message: 'Neural config updated' });
+});
+
+// PATCH /preferences: Update General Preferences (Timezone, etc.)
+app.patch('/preferences', async (c) => {
+    const user = c.get('user');
+    const supabase = c.get('supabase');
+    const { timezone } = await c.req.json();
+
+    if (!timezone) return c.json({ error: 'No update data provided' }, 400);
+
+    const { error } = await supabase
+        .from('profiles')
+        .update({ timezone: timezone })
+        .eq('id', user.id);
+
+    if (error) {
+        console.error('Pref Update Error:', error);
+        return c.json({ error: 'Failed to update preferences' }, 500);
+    }
+
+    return c.json({ message: 'Preferences updated' });
 });
 
 export default app;
