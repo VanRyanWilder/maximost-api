@@ -198,4 +198,54 @@ aiRoutes.post('/chat', async (c) => {
     }
 });
 
+// POST /api/ai/architect/decompose - The Atomic Cue Engine
+// Generates the 4 Laws (Building) or Inverse 4 Laws (Breaking) for a given habit name.
+aiRoutes.post('/architect/decompose', async (c) => {
+    const { habit_name, type } = await c.req.json();
+
+    if (!habit_name) return c.json({ error: 'Habit name is required' }, 400);
+
+    const isBuilding = type === 'building';
+    const promptType = isBuilding ? "BUILDING (4 Laws)" : "BREAKING (Inverse 4 Laws)";
+
+    const prompt = `
+    ROLE: You are the Habit Architect. You are James Clear meets David Goggins.
+    TASK: Decompose the habit "${habit_name}" into a tactical 4-step execution plan based on the ${promptType}.
+
+    FORMAT: Return ONLY a raw JSON object with these 4 keys. No markdown, no pre-text.
+    {
+      "cue": "Specific trigger instructions...",
+      "craving": "Psychological priming instructions...",
+      "response": "Friction adjustment instructions...",
+      "reward": "Immediate feedback mechanism..."
+    }
+
+    CONTEXT:
+    - Cue: Make it Obvious (Build) / Invisible (Break)
+    - Craving: Make it Attractive (Build) / Unattractive (Break)
+    - Response: Make it Easy (Build) / Difficult (Break)
+    - Reward: Make it Satisfying (Build) / Unsatisfying (Break)
+
+    TONE: Tactical, precise, imperative.
+    `;
+
+    try {
+        const model = genAI.getGenerativeModel({
+            model: 'gemini-2.0-flash',
+            generationConfig: { responseMimeType: "application/json" } // Force JSON
+        });
+
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
+
+        // Parse JSON (safety check)
+        const json = JSON.parse(text);
+        return c.json(json);
+
+    } catch (error: any) {
+        console.error('Decompose Error:', error);
+        return c.json({ error: 'Failed to decompose habit' }, 500);
+    }
+});
+
 export default aiRoutes;
